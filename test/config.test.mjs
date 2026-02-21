@@ -7,8 +7,6 @@ import {
   PORT,
   TWILIO_VOICE,
   SMS_MAX_CHARS,
-  MULAW_FRAME_BYTES,
-  MULAW_FRAME_INTERVAL_MS,
   MAX_SAYABLE_LENGTH,
 } from "../lib/config.mjs";
 
@@ -27,11 +25,6 @@ describe("config", () => {
     it("has SMS_MAX_CHARS as number", () => {
       assert.strictEqual(typeof SMS_MAX_CHARS, "number");
       assert.ok(SMS_MAX_CHARS > 0);
-    });
-
-    it("has audio encoding constants", () => {
-      assert.strictEqual(MULAW_FRAME_BYTES, 160); // 20ms at 8kHz
-      assert.strictEqual(MULAW_FRAME_INTERVAL_MS, 20);
     });
 
     it("has MAX_SAYABLE_LENGTH", () => {

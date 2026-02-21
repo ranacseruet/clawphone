@@ -1,18 +1,12 @@
 import http from "node:http";
 import { URL } from "node:url";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import crypto from "node:crypto";
-import { WebSocketServer } from "ws";
 
 // Local modules
 import { handleIncomingSms } from "./lib/sms.mjs";
 import { createTwilioClient } from "./lib/twilio.mjs";
 import { parseForm, toSayableText } from "./lib/utils.mjs";
 import { openclawReply, discordLog } from "./lib/agent.mjs";
-import { sayToCaller } from "./lib/tts.mjs";
-import { transcribeMulawToText } from "./lib/transcription.mjs";
 import {
   createPendingTurn,
   getPendingTurn,
@@ -23,16 +17,12 @@ import {
 import * as twiml from "./lib/twiml.mjs";
 import {
   PORT,
-  PUBLIC_BASE,
-  USE_MEDIA_STREAMS,
   ALLOW_FROM,
   TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN,
   TWILIO_SMS_FROM,
   SMS_MAX_CHARS,
   SMS_FAST_TIMEOUT_MS,
-  SILENCE_MS,
-  VAD_CHECK_INTERVAL_MS,
   MAX_SAYABLE_LENGTH,
   getRandomThinkingPhrase,
 } from "./lib/config.mjs";
@@ -74,25 +64,10 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Default mode: Twilio's speech recognition via <Gather>
-      if (!USE_MEDIA_STREAMS) {
-        res.writeHead(200, { "content-type": "text/xml" });
-        res.end(twiml.greetingWithGather(
-          "Hi Rana. You are connected to Tom. Say something after the beep."
-        ));
-        return;
-      }
-
-      // Media Streams mode
-      if (!PUBLIC_BASE) {
-        res.writeHead(500, { "content-type": "text/plain" });
-        res.end("PUBLIC_BASE env var is required for Media Streams mode");
-        return;
-      }
-
-      const wsUrl = PUBLIC_BASE.replace(/^http/, "ws") + "/media";
       res.writeHead(200, { "content-type": "text/xml" });
-      res.end(twiml.connectMediaStream("Hi Rana. You are connected to Tom.", wsUrl));
+      res.end(twiml.greetingWithGather(
+        "Hi Rana. You are connected to Tom. Say something after the beep."
+      ));
     });
     return;
   }
@@ -234,127 +209,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// WebSocket Server (Media Streams mode)
-// ─────────────────────────────────────────────────────────────
-
-const wss = new WebSocketServer({ noServer: true });
-
-wss.on("connection", (ws) => {
-  const callId = crypto.randomUUID();
-  let streamSid = null;
-
-  // Utterance tracking for turn-taking
-  let utteranceId = 0;
-  let utteranceMulawPath = null;
-  let lastAudioAt = Date.now();
-  let replying = false;
-
-  async function startNewUtterance() {
-    utteranceId += 1;
-    utteranceMulawPath = path.join(os.tmpdir(), `twilio-${callId}-utt-${utteranceId}.mulaw`);
-    await fs.writeFile(utteranceMulawPath, Buffer.alloc(0));
-  }
-
-  // Simple turn-taking: if no inbound audio for SILENCE_MS, assume user stopped
-  const interval = setInterval(async () => {
-    if (!streamSid || !utteranceMulawPath) return;
-    if (replying) return;
-
-    const now = Date.now();
-    if (now - lastAudioAt < SILENCE_MS) return;
-
-    // Attempt to transcribe and respond
-    replying = true;
-    const mulawPath = utteranceMulawPath;
-    utteranceMulawPath = null;
-
-    try {
-      const text = await transcribeMulawToText({ mulawPath });
-      console.log(`[twilio] utterance transcript: ${text || "(empty)"}`);
-
-      // TODO: Replace with actual agent call
-      const reply = text ? `I heard: ${text}` : "I did not catch that.";
-      await sayToCaller({ ws, streamSid, text: reply });
-    } catch (err) {
-      console.error(`[twilio] utterance handling error: ${String(err)}`);
-    } finally {
-      void fs.unlink(mulawPath).catch(() => {});
-      void fs.unlink(mulawPath.replace(/\.mulaw$/i, ".wav")).catch(() => {});
-      replying = false;
-      await startNewUtterance().catch(() => {});
-    }
-  }, VAD_CHECK_INTERVAL_MS);
-
-  ws.on("close", () => clearInterval(interval));
-
-  ws.on("message", async (data) => {
-    let msg;
-    try {
-      msg = JSON.parse(data.toString("utf8"));
-    } catch {
-      return;
-    }
-
-    if (msg.event === "start") {
-      streamSid = msg.streamSid || msg.start?.streamSid;
-      console.log(`[twilio] start streamSid=${streamSid} callSid=${msg.start?.callSid}`);
-      await startNewUtterance();
-
-      // Quick hello as proof the outbound stream works
-      await sayToCaller({ ws, streamSid, text: "Streaming voice is online." });
-      return;
-    }
-
-    if (msg.event === "media") {
-      const payload = msg.media?.payload;
-      if (!payload) return;
-      const buf = Buffer.from(payload, "base64");
-
-      // Drop inbound audio while replying to avoid feedback
-      if (replying) return;
-
-      lastAudioAt = Date.now();
-      if (!utteranceMulawPath) {
-        await startNewUtterance();
-      }
-      await fs.appendFile(utteranceMulawPath, buf);
-      return;
-    }
-
-    if (msg.event === "stop") {
-      console.log(`[twilio] stop streamSid=${streamSid}`);
-      return;
-    }
-  });
-});
-
-server.on("upgrade", (req, socket, head) => {
-  // Only accept WS upgrades in Media Streams mode
-  if (!USE_MEDIA_STREAMS) {
-    socket.destroy();
-    return;
-  }
-  const u = new URL(req.url, `http://${req.headers.host}`);
-  if (u.pathname !== "/media") {
-    socket.destroy();
-    return;
-  }
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit("connection", ws, req);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // Start server
 // ─────────────────────────────────────────────────────────────
 
 server.listen(PORT, () => {
   console.log(`twilio-phone-gateway listening on http://localhost:${PORT}`);
   console.log(`health: http://localhost:${PORT}/health`);
-  console.log(`mode: ${USE_MEDIA_STREAMS ? "media-streams" : "gather-speech"}`);
-  if (USE_MEDIA_STREAMS && !PUBLIC_BASE) {
-    console.log("NOTE: set PUBLIC_BASE once cloudflared URL is known");
-  }
   if (ALLOW_FROM.length) {
     console.log(`allowlist From numbers: ${ALLOW_FROM.join(", ")}`);
   }

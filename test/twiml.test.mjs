@@ -9,7 +9,6 @@ import {
   replyWithGather,
   thinkingRedirect,
   pauseAndRedirect,
-  connectMediaStream,
 } from "../lib/twiml.mjs";
 import { TWILIO_VOICE, GATHER_TIMEOUT_SECONDS, GATHER_FOLLOWUP_TIMEOUT_SECONDS, SPEECH_WAIT_PAUSE_SECONDS } from "../lib/config.mjs";
 
@@ -105,13 +104,4 @@ describe("TwiML builders", () => {
     });
   });
 
-  describe("connectMediaStream", () => {
-    it("includes greeting and stream connection", () => {
-      const result = connectMediaStream("Welcome", "wss://example.com/media");
-      assert.ok(result.includes(">Welcome</Say>"));
-      assert.ok(result.includes("<Connect>"));
-      assert.ok(result.includes('<Stream url="wss://example.com/media"'));
-      assert.ok(result.includes("</Connect>"));
-    });
-  });
 });

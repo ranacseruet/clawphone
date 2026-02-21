@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "dotenv": "^17.3.1",
-    "twilio": "^5.8.0",
-    "ws": "^8.18.0"
+    "twilio": "^5.8.0"
   }
 }
