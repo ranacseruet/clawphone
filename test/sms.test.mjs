@@ -215,3 +215,76 @@ test("twimlMessage uses default 'Okay' for empty text", () => {
   const xml = twimlMessage("");
   assert.match(xml, /<Message>Okay<\/Message>/);
 });
+
+// ─── xmlEscape: individual special chars ─────────────────────────────────────
+
+test("xmlEscape escapes & individually", () => {
+  assert.equal(xmlEscape("&"), "&amp;");
+});
+
+test("xmlEscape escapes < individually", () => {
+  assert.equal(xmlEscape("<"), "&lt;");
+});
+
+test("xmlEscape escapes > individually", () => {
+  assert.equal(xmlEscape(">"), "&gt;");
+});
+
+test('xmlEscape escapes " individually', () => {
+  assert.equal(xmlEscape('"'), "&quot;");
+});
+
+test("xmlEscape escapes ' individually", () => {
+  assert.equal(xmlEscape("'"), "&apos;");
+});
+
+test("xmlEscape escapes all 5 special chars in one string", () => {
+  assert.equal(xmlEscape(`&<>"'`), "&amp;&lt;&gt;&quot;&apos;");
+});
+
+test("xmlEscape double-escapes already-escaped input (not idempotent by design)", () => {
+  assert.equal(xmlEscape("&amp;"), "&amp;amp;");
+});
+
+// ─── Phone normalization edge cases ──────────────────────────────────────────
+
+test("handleIncomingSms: From without + prefix is normalized and allowed", async () => {
+  const res = await handleIncomingSms({
+    form: { From: "15550000001", To: "+15550000002", Body: "hi" },
+    allowFrom: ["+15550000001"],
+    deps: {
+      openclawReply: async () => "ok",
+    },
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+  assert.equal(res.didAck, false);
+  assert.match(res.twiml, /ok/);
+});
+
+test("handleIncomingSms: From with leading/trailing whitespace is trimmed and matched", async () => {
+  const res = await handleIncomingSms({
+    form: { From: "  +15550000001  ", To: "+15550000002", Body: "hi" },
+    allowFrom: ["+15550000001"],
+    deps: {
+      openclawReply: async () => "ok",
+    },
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+  assert.equal(res.didAck, false);
+  assert.match(res.twiml, /ok/);
+});
+
+test("handleIncomingSms: From is undefined → normalized to '+' → fails allowlist", async () => {
+  const res = await handleIncomingSms({
+    form: { To: "+15550000002", Body: "hi" }, // no From
+    allowFrom: ["+15550000001"],
+    deps: {
+      openclawReply: async () => "should not be called",
+    },
+    log: () => {},
+  });
+  assert.equal(res.didAck, false);
+  assert.match(res.twiml, /Unauthorized/);
+});

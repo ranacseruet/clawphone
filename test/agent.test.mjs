@@ -2,23 +2,48 @@ import { describe, it, mock } from "node:test";
 import assert from "node:assert";
 
 import { discordLog, openclawReply } from "../lib/agent.mjs";
+import { OPENCLAW_MAX_CONCURRENT, DISCORD_LOG_CHANNEL_ID } from "../lib/config.mjs";
 
 describe("discordLog", () => {
   it("does nothing if DISCORD_LOG_CHANNEL_ID is not set", async () => {
-    // Since DISCORD_LOG_CHANNEL_ID is read at module load time and is likely empty in tests,
-    // this should just return without calling run
     const mockRun = mock.fn(async () => ({ stdout: "", stderr: "" }));
-    
     await discordLog({ text: "test message", run: mockRun });
-    
-    // The module checks DISCORD_LOG_CHANNEL_ID at runtime, so if it's not set,
-    // run should not be called
-    // Note: This depends on the env var being empty during tests
+    if (!DISCORD_LOG_CHANNEL_ID) {
+      // When channel is not configured, run must never be called
+      assert.strictEqual(mockRun.mock.calls.length, 0);
+    }
+    // When channel IS configured, run will be called once — that is expected behaviour
   });
 
-  it("calls openclaw message send with correct args when channel configured", async () => {
-    // We can't easily test this without setting the env var at module load
-    // Skip for now - the function structure is validated by other tests
+  it("drops excess calls when in-flight limit is reached", async () => {
+    if (!DISCORD_LOG_CHANNEL_ID) {
+      // Without a channel all calls exit early; the in-flight cap path is unreachable
+      const mockRun = mock.fn(async () => ({ stdout: "", stderr: "" }));
+      await Promise.all([
+        discordLog({ text: "a", run: mockRun }),
+        discordLog({ text: "b", run: mockRun }),
+        discordLog({ text: "c", run: mockRun }),
+      ]);
+      assert.strictEqual(mockRun.mock.calls.length, 0);
+      return;
+    }
+    // With a channel, saturate the in-flight limit with a slow mock, then verify
+    // that an extra call is dropped (run called < total dispatched).
+    let resolveHold;
+    const hold = new Promise((r) => { resolveHold = r; });
+    let runCallCount = 0;
+    const slowRun = async () => { runCallCount++; await hold; return { stdout: "", stderr: "" }; };
+
+    // Fire DISCORD_MAX_IN_FLIGHT (5) + 2 extra calls concurrently
+    const allDone = Promise.all(
+      Array.from({ length: 7 }, () => discordLog({ text: "x", run: slowRun }))
+    );
+    // Give the event loop a tick so all calls have a chance to start
+    await new Promise((r) => setImmediate(r));
+    // At most 5 should have entered run(); the extra 2 must have been dropped
+    assert.ok(runCallCount <= 5, `runCallCount=${runCallCount} should be <= 5`);
+    resolveHold();
+    await allDone;
   });
 });
 
@@ -117,5 +142,24 @@ describe("openclawReply", () => {
 
     const result = await openclawReply({ userText: "test", run: mockRun });
     assert.strictEqual(result, "");
+  });
+
+  it("concurrency smoke test: active count never exceeds OPENCLAW_MAX_CONCURRENT", async () => {
+    let active = 0;
+    let maxActive = 0;
+    const slowRun = async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 10));
+      active--;
+      return { stdout: JSON.stringify({ text: "ok" }), stderr: "" };
+    };
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => openclawReply({ userText: "test", run: slowRun }))
+    );
+
+    assert.ok(maxActive <= OPENCLAW_MAX_CONCURRENT, `maxActive=${maxActive} exceeded ${OPENCLAW_MAX_CONCURRENT}`);
+    assert.ok(results.every((r) => r === "ok"), "all results should be 'ok'");
   });
 });

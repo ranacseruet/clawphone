@@ -1,7 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { EventEmitter } from "node:events";
 
-import { parseForm, toSayableText, run } from "../lib/utils.mjs";
+import { parseForm, toSayableText, run, readBody, createSemaphore } from "../lib/utils.mjs";
+
+// ─── Mock request factory ───────────────────────────────────────────────────
+
+function makeReq(chunks) {
+  const req = new EventEmitter();
+  req.destroy = () => setImmediate(() => req.emit("error", new Error("socket hang up")));
+  setImmediate(() => {
+    for (const chunk of chunks) req.emit("data", Buffer.from(chunk));
+    req.emit("end");
+  });
+  return req;
+}
 
 describe("parseForm", () => {
   it("parses URL-encoded form data", () => {
@@ -60,6 +73,96 @@ describe("toSayableText", () => {
   it("handles null/undefined input", () => {
     assert.strictEqual(toSayableText(null), "");
     assert.strictEqual(toSayableText(undefined), "");
+  });
+});
+
+describe("readBody", () => {
+  it("collects multiple chunks into correct string", async () => {
+    const req = makeReq(["hello", " ", "world"]);
+    const result = await readBody(req);
+    assert.strictEqual(result, "hello world");
+  });
+
+  it("handles empty body", async () => {
+    const req = makeReq([]);
+    const result = await readBody(req);
+    assert.strictEqual(result, "");
+  });
+
+  it("handles single chunk", async () => {
+    const req = makeReq(["single"]);
+    const result = await readBody(req);
+    assert.strictEqual(result, "single");
+  });
+
+  it("rejects with statusCode 413 when body exceeds maxBytes", async () => {
+    const req = makeReq(["a".repeat(100)]);
+    const err = await readBody(req, 50).catch((e) => e);
+    assert.ok(err instanceof Error);
+    assert.strictEqual(err.statusCode, 413);
+    assert.match(err.message, /exceeded/);
+  });
+});
+
+describe("createSemaphore", () => {
+  it("limits active count to max", async () => {
+    const sem = createSemaphore(3);
+    let active = 0;
+    let maxObserved = 0;
+    const tasks = Array.from({ length: 8 }, async () => {
+      await sem.acquire();
+      active++;
+      maxObserved = Math.max(maxObserved, active);
+      await new Promise((r) => setImmediate(r));
+      active--;
+      sem.release();
+    });
+    await Promise.all(tasks);
+    assert.ok(maxObserved <= 3, `maxObserved=${maxObserved} should be <= 3`);
+  });
+
+  it("queues excess and resolves in FIFO order", async () => {
+    const sem = createSemaphore(1);
+    const order = [];
+    // Acquire slot so next three must queue
+    await sem.acquire();
+    const p1 = sem.acquire().then(() => { order.push(1); sem.release(); });
+    const p2 = sem.acquire().then(() => { order.push(2); sem.release(); });
+    const p3 = sem.acquire().then(() => { order.push(3); sem.release(); });
+    sem.release(); // unblock queue
+    await Promise.all([p1, p2, p3]);
+    assert.deepStrictEqual(order, [1, 2, 3]);
+  });
+
+  it("release() unblocks next waiter", async () => {
+    const sem = createSemaphore(1);
+    await sem.acquire();
+    let unblocked = false;
+    const waiter = sem.acquire().then(() => { unblocked = true; sem.release(); });
+    assert.strictEqual(unblocked, false);
+    sem.release();
+    await waiter;
+    assert.strictEqual(unblocked, true);
+  });
+
+  it("works as mutex (max=1): two tasks execute sequentially", async () => {
+    const sem = createSemaphore(1);
+    const log = [];
+    const task = async (id) => {
+      await sem.acquire();
+      log.push(`start-${id}`);
+      await new Promise((r) => setTimeout(r, 5));
+      log.push(`end-${id}`);
+      sem.release();
+    };
+    await Promise.all([task(1), task(2)]);
+    // end-1 must come before start-2 (or end-2 before start-1)
+    const i1s = log.indexOf("start-1");
+    const i1e = log.indexOf("end-1");
+    const i2s = log.indexOf("start-2");
+    const i2e = log.indexOf("end-2");
+    const sequential = (i1e < i2s) || (i2e < i1s);
+    assert.ok(sequential, `log=${JSON.stringify(log)} should show sequential execution`);
   });
 });
 

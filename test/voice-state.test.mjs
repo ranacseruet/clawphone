@@ -9,6 +9,9 @@ import {
   isLatestTurn,
   completeTurn,
   deleteTurn,
+  cleanupStaleTurns,
+  pendingSize,
+  latestByCallSize,
 } from "../lib/voice-state.mjs";
 
 describe("voice-state", () => {
@@ -133,10 +136,10 @@ describe("voice-state", () => {
     it("removes turn from pending", () => {
       const callSid = `delete-test-${Date.now()}`;
       const key = `${callSid}:turn1`;
-      
+
       createPendingTurn({ key, callSid, from: "+1234", said: "test" });
       assert.ok(getPendingTurn(key));
-      
+
       deleteTurn(key);
       assert.strictEqual(getPendingTurn(key), undefined);
     });
@@ -144,10 +147,10 @@ describe("voice-state", () => {
     it("clears latest tracking if this was latest", () => {
       const callSid = `delete-latest-${Date.now()}`;
       const key = `${callSid}:turn1`;
-      
+
       createPendingTurn({ key, callSid, from: "+1234", said: "test" });
       assert.strictEqual(isLatestTurn(key, callSid), true);
-      
+
       deleteTurn(key);
       // After deletion, isLatestTurn should return false (no latest)
       assert.strictEqual(isLatestTurn(key, callSid), false);
@@ -156,6 +159,55 @@ describe("voice-state", () => {
     it("handles non-existent key gracefully", () => {
       // Should not throw
       deleteTurn("non-existent-key");
+    });
+  });
+
+  describe("cleanupStaleTurns", () => {
+    it("removes turns older than maxAgeMs", async () => {
+      const callSid = `stale-cleanup-${Date.now()}`;
+      const key = `${callSid}:turn1`;
+      createPendingTurn({ key, callSid, from: "+1234", said: "old" });
+      await new Promise((r) => setTimeout(r, 1));
+      cleanupStaleTurns(0);
+      assert.strictEqual(getPendingTurn(key), undefined);
+    });
+
+    it("keeps turns younger than maxAgeMs", () => {
+      const callSid = `fresh-cleanup-${Date.now()}`;
+      const key = `${callSid}:turn1`;
+      createPendingTurn({ key, callSid, from: "+1234", said: "fresh" });
+      cleanupStaleTurns(3_600_000);
+      assert.ok(getPendingTurn(key));
+      deleteTurn(key); // cleanup
+    });
+
+    it("cleans up latestByCall for stale turns", async () => {
+      const callSid = `stale-latest-${Date.now()}`;
+      const key = `${callSid}:turn1`;
+      createPendingTurn({ key, callSid, from: "+1234", said: "test" });
+      assert.strictEqual(isLatestTurn(key, callSid), true);
+      await new Promise((r) => setTimeout(r, 1));
+      cleanupStaleTurns(0);
+      assert.strictEqual(isLatestTurn(key, callSid), false);
+    });
+
+    it("handles empty maps without throwing", () => {
+      assert.doesNotThrow(() => cleanupStaleTurns(0));
+    });
+  });
+
+  describe("pendingSize / latestByCallSize", () => {
+    it("reflects correct delta after createPendingTurn and deleteTurn", () => {
+      const callSid = `size-test-${Date.now()}`;
+      const key = `${callSid}:turn1`;
+      const before = pendingSize();
+      const beforeCall = latestByCallSize();
+      createPendingTurn({ key, callSid, from: "+1234", said: "test" });
+      assert.strictEqual(pendingSize(), before + 1);
+      assert.strictEqual(latestByCallSize(), beforeCall + 1);
+      deleteTurn(key);
+      assert.strictEqual(pendingSize(), before);
+      assert.strictEqual(latestByCallSize(), beforeCall);
     });
   });
 });
