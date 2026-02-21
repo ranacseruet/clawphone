@@ -8,7 +8,7 @@ import { parseForm, toSayableText, run, readBody, createSemaphore } from "../lib
 
 function makeReq(chunks) {
   const req = new EventEmitter();
-  req.destroy = () => setImmediate(() => req.emit("error", new Error("socket hang up")));
+  req.destroy = () => {}; // no-op; readBody no longer calls destroy
   setImmediate(() => {
     for (const chunk of chunks) req.emit("data", Buffer.from(chunk));
     req.emit("end");
@@ -101,6 +101,13 @@ describe("readBody", () => {
     assert.ok(err instanceof Error);
     assert.strictEqual(err.statusCode, 413);
     assert.match(err.message, /exceeded/);
+  });
+
+  it("rejects when the request emits an error", async () => {
+    const req = new EventEmitter();
+    req.destroy = () => {};
+    setImmediate(() => req.emit("error", new Error("connection reset")));
+    await assert.rejects(readBody(req), /connection reset/);
   });
 });
 

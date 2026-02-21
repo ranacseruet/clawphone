@@ -228,3 +228,5 @@ server.listen(PORT, () => {
 });
 
 setInterval(() => cleanupStaleTurns(), 60_000).unref();
+
+export { server };

@@ -23,6 +23,21 @@ test("normalizeSmsText normalizes unicode punctuation and enforces max length", 
   assert.match(out, /^Hi - "th/);
 });
 
+test("handleIncomingSms: calls deps.discordLog when provided", async () => {
+  let logged = null;
+  await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "log me" },
+    deps: {
+      openclawReply: async () => "reply",
+      discordLog: async ({ text }) => { logged = text; },
+    },
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+  assert.ok(logged !== null, "discordLog should have been called");
+  assert.match(logged, /log me/);
+});
+
 test("handleIncomingSms: fast path returns full reply and no async", async () => {
   const calls = { openclaw: 0, send: 0 };
   const res = await handleIncomingSms({

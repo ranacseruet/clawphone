@@ -167,7 +167,8 @@ describe("voice-state", () => {
       const callSid = `stale-cleanup-${Date.now()}`;
       const key = `${callSid}:turn1`;
       createPendingTurn({ key, callSid, from: "+1234", said: "old" });
-      await new Promise((r) => setTimeout(r, 1));
+      // Wait long enough that Date.now() strictly advances past createdAt
+      await new Promise((r) => setTimeout(r, 10));
       cleanupStaleTurns(0);
       assert.strictEqual(getPendingTurn(key), undefined);
     });
@@ -186,7 +187,8 @@ describe("voice-state", () => {
       const key = `${callSid}:turn1`;
       createPendingTurn({ key, callSid, from: "+1234", said: "test" });
       assert.strictEqual(isLatestTurn(key, callSid), true);
-      await new Promise((r) => setTimeout(r, 1));
+      // Wait long enough that Date.now() strictly advances past createdAt
+      await new Promise((r) => setTimeout(r, 10));
       cleanupStaleTurns(0);
       assert.strictEqual(isLatestTurn(key, callSid), false);
     });

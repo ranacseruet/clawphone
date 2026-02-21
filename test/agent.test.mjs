@@ -112,6 +112,22 @@ describe("openclawReply", () => {
     }));
     result = await openclawReply({ userText: "test", run: mockRun });
     assert.strictEqual(result, "Text format");
+
+    // Test message.content format
+    mockRun = mock.fn(async () => ({
+      stdout: JSON.stringify({ message: { content: "Message content format" } }),
+      stderr: "",
+    }));
+    result = await openclawReply({ userText: "test", run: mockRun });
+    assert.strictEqual(result, "Message content format");
+
+    // Test output.text format
+    mockRun = mock.fn(async () => ({
+      stdout: JSON.stringify({ output: { text: "Output text format" } }),
+      stderr: "",
+    }));
+    result = await openclawReply({ userText: "test", run: mockRun });
+    assert.strictEqual(result, "Output text format");
   });
 
   it("handles non-JSON output", async () => {

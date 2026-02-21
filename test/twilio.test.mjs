@@ -35,6 +35,25 @@ describe("createTwilioClient", () => {
   });
 
   describe("sendSms", () => {
+    // Factory that returns a fake Twilio SDK client
+    function makeFakeTwilio({ createResult } = {}) {
+      return () => ({
+        messages: {
+          create: async (params) =>
+            createResult
+              ? createResult(params)
+              : {
+                  sid: "SM_fake_sid",
+                  status: "queued",
+                  errorCode: null,
+                  errorMessage: null,
+                  to: params.to,
+                  from: params.from,
+                },
+        },
+      });
+    }
+
     it("throws if 'to' is missing", async () => {
       const client = createTwilioClient({
         accountSid: "ACtest123",
@@ -57,6 +76,83 @@ describe("createTwilioClient", () => {
         client.sendSms({ to: "+1234567890", body: "test" }),
         /Missing to\/from/
       );
+    });
+
+    it("calls messages.create and returns normalized response", async () => {
+      const client = createTwilioClient({
+        accountSid: "ACtest123",
+        authToken: "test-token",
+        _twilioFactory: makeFakeTwilio(),
+      });
+
+      const result = await client.sendSms({
+        to: "+15551111111",
+        from: "+15552222222",
+        body: "Hello there",
+      });
+
+      assert.deepStrictEqual(result, {
+        sid: "SM_fake_sid",
+        status: "queued",
+        errorCode: null,
+        errorMessage: null,
+        to: "+15551111111",
+        from: "+15552222222",
+      });
+    });
+
+    it("passes empty string for body when body is undefined", async () => {
+      let capturedBody;
+      const client = createTwilioClient({
+        accountSid: "ACtest123",
+        authToken: "test-token",
+        _twilioFactory: makeFakeTwilio({
+          createResult: async ({ to, from, body }) => {
+            capturedBody = body;
+            return { sid: "X", status: "sent", errorCode: null, errorMessage: null, to, from };
+          },
+        }),
+      });
+
+      await client.sendSms({ to: "+15551111111", from: "+15552222222" });
+      assert.strictEqual(capturedBody, "");
+    });
+
+    it("normalizes all expected fields from the Twilio MessageInstance", async () => {
+      const client = createTwilioClient({
+        accountSid: "ACtest123",
+        authToken: "test-token",
+        _twilioFactory: makeFakeTwilio({
+          createResult: async () => ({
+            sid: "SM999",
+            status: "delivered",
+            errorCode: 30001,
+            errorMessage: "Queue overflow",
+            to: "+15551111111",
+            from: "+15552222222",
+            // extra fields that should be dropped
+            price: "-0.00750",
+            priceUnit: "USD",
+          }),
+        }),
+      });
+
+      const result = await client.sendSms({
+        to: "+15551111111",
+        from: "+15552222222",
+        body: "test",
+      });
+
+      assert.deepStrictEqual(result, {
+        sid: "SM999",
+        status: "delivered",
+        errorCode: 30001,
+        errorMessage: "Queue overflow",
+        to: "+15551111111",
+        from: "+15552222222",
+      });
+      // Extra fields not included
+      assert.strictEqual("price" in result, false);
     });
   });
 });
