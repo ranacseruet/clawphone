@@ -1,15 +1,12 @@
-# Twilio Voice Gateway (Media Streams)
+# Twilio Voice Gateway
 
-Local service to receive incoming Twilio calls, stream audio over WebSocket, and (initially) transcribe.
+Local service to receive incoming Twilio voice calls and SMS, bridging them to the OpenClaw agent CLI.
 
 ## Prereqs
-- `cloudflared` installed + logged in (you already did)
-- `ffmpeg` installed
-- `whisper-cli` installed (via `brew install whisper-cpp`) + model at `~/.cache/whisper/ggml-small.bin`
+- `cloudflared` installed + logged in
+- `openclaw` CLI on PATH
 
 ## Run (trycloudflare)
-
-### Default mode: Gather + Twilio Speech Recognition (fastest)
 
 Terminal A:
 ```bash
@@ -39,22 +36,10 @@ Cloudflared will print a public URL like `https://xxxx.trycloudflare.com`.
 In Twilio Console:
 - Phone Number → Voice → **A CALL COMES IN** (POST)
   - `https://xxxx.trycloudflare.com/voice`
-
-Twilio will POST speech results back to:
-- `https://xxxx.trycloudflare.com/speech`
-
-### Optional mode: Media Streams (kept for later)
-
-```bash
-export PORT=8787
-export USE_MEDIA_STREAMS=true
-export PUBLIC_BASE="https://xxxx.trycloudflare.com"
-export ALLOW_FROM="+15550001111"
-node ~/clawd/projects/twilio-phone-gateway/server.mjs
-```
+- Phone Number → Messaging → **A MESSAGE COMES IN** (POST)
+  - `https://xxxx.trycloudflare.com/sms`
 
 ## Notes
-- **Default mode** uses Twilio `<Gather input="speech">` for speech recognition (fastest interactive loop).
-- Media Streams support is still in the code, but disabled unless `USE_MEDIA_STREAMS=true`.
+- Voice uses Twilio `<Gather input="speech">` for speech recognition with a polling loop to handle agent latency.
 - SMS replies are constrained to be concise (see `SMS_MAX_CHARS`) to avoid Twilio trial length warnings.
-- Async SMS follow-ups use the official `twilio` Node SDK.
+- Async SMS follow-ups use the official `twilio` Node SDK when the agent takes longer than 15s.
