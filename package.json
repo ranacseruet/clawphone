@@ -1,0 +1,13 @@
+{
+  "name": "twilio-phone-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "twilio": "^5.8.0",
+    "ws": "^8.18.0"
+  }
+}
