@@ -12,13 +12,47 @@ twilio-phone-gateway can run as an **OpenClaw plugin**, which means the gateway 
 
 ## 1. Install the plugin
 
-From the project directory:
+Choose the method that fits your use case:
+
+### From GitHub (recommended)
+
+Installs directly from the GitHub repository. Supports `openclaw plugins update` to pull new versions.
+
+```bash
+openclaw plugins install ranacseruet/twilio-phone-gateway
+```
+
+Pin to a specific branch or tag:
+
+```bash
+openclaw plugins install ranacseruet/twilio-phone-gateway#main
+openclaw plugins install ranacseruet/twilio-phone-gateway#v1.2.0
+```
+
+### From npm (when published)
+
+```bash
+openclaw plugins install @openclaw/twilio-phone-gateway
+
+# Pin to exact resolved version
+openclaw plugins install --pin @openclaw/twilio-phone-gateway
+```
+
+### From a local directory (development)
+
+Copy install (one-time snapshot — changes are **not** picked up automatically):
 
 ```bash
 openclaw plugins install .
 ```
 
-This copies the plugin into `~/.openclaw/extensions/twilio-phone-gateway/`.
+Link install (symlink — code changes are picked up immediately, no copy needed):
+
+```bash
+openclaw plugins install --link .
+```
+
+Use `--link` during active development to avoid the manual file-copy update workflow.
 
 ---
 
@@ -115,21 +149,17 @@ Cloudflared prints a public URL like `https://xxxx.trycloudflare.com`. In the [T
 
 ---
 
-## Updating after code changes
+## Updating the plugin
 
-Path-based plugin installs (`openclaw plugins install .`) are a one-time copy. Changes to source files are **not** picked up automatically. To update:
+| Install method | How to update |
+|---|---|
+| GitHub / npm | `openclaw plugins update twilio-phone-gateway` |
+| Local `--link` | No action needed — changes are live immediately |
+| Local copy (`.`) | Re-run `openclaw plugins install .` or copy changed files manually, then restart |
 
-```bash
-# Copy changed files to the installed location
-cp lib/agent.mjs ~/.openclaw/extensions/twilio-phone-gateway/lib/agent.mjs
-# Repeat for any other changed lib/ files, then restart:
-openclaw gateway stop && openclaw gateway install
-```
-
-Or re-run the full install:
+Restart after any update:
 
 ```bash
-openclaw plugins install .
 openclaw gateway stop && openclaw gateway install
 ```
 
@@ -143,7 +173,7 @@ openclaw plugins disable twilio-phone-gateway
 openclaw gateway stop && openclaw gateway install
 
 # Remove entirely
-openclaw plugins remove twilio-phone-gateway
+openclaw plugins uninstall twilio-phone-gateway
 ```
 
 ---
@@ -156,5 +186,5 @@ openclaw plugins remove twilio-phone-gateway
 | **Agent calls** | In-process (`runEmbeddedPiAgent`) | Child process (`openclaw agent …`) |
 | **Config** | `openclaw config set …` | `.env` file |
 | **Startup** | `openclaw gateway install` | `pm2 start ecosystem.config.cjs` |
-| **Updates** | Manual file copy after code changes | `git pull` + `pm2 restart` |
+| **Updates** | `openclaw plugins update` (GitHub/npm) | `git pull` + `pm2 restart` |
 | **Best for** | Running alongside other OpenClaw extensions | Isolated deployment, Docker, servers without OpenClaw gateway |

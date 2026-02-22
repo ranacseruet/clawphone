@@ -47,10 +47,12 @@ pm2 logs twilio-phone-gateway
 
 OpenClaw plugin (quick reference — full guide in `docs/plugin-install.md`):
 ```bash
-openclaw plugins install .
+openclaw plugins install ranacseruet/twilio-phone-gateway  # from GitHub
+openclaw plugins install --link .                          # local dev (live symlink)
 openclaw config set plugins.allow '["twilio-phone-gateway"]'
-openclaw plugins list                              # verify "loaded"
-openclaw gateway stop && openclaw gateway install  # restart to reload
+openclaw plugins list                                      # verify "loaded"
+openclaw gateway stop && openclaw gateway install          # restart to reload
+openclaw plugins update twilio-phone-gateway               # update (GitHub/npm installs)
 ```
 
 ## Architecture
