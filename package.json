@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/twilio-phone-gateway",
+  "name": "@openclaw/clawphone",
   "version": "1.0.0",
   "description": "Twilio voice and SMS gateway plugin for OpenClaw",
   "type": "module",
@@ -11,11 +11,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ranacseruet/twilio-phone-gateway.git"
+    "url": "https://github.com/ranacseruet/clawphone.git"
   },
-  "homepage": "https://github.com/ranacseruet/twilio-phone-gateway#readme",
+  "homepage": "https://github.com/ranacseruet/clawphone#readme",
   "bugs": {
-    "url": "https://github.com/ranacseruet/twilio-phone-gateway/issues"
+    "url": "https://github.com/ranacseruet/clawphone/issues"
   },
   "keywords": [
     "twilio",

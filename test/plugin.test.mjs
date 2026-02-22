@@ -6,7 +6,7 @@ import { fromPluginConfig } from "../lib/config.mjs";
 
 describe("plugin manifest", () => {
   it("has correct id", () => {
-    assert.strictEqual(plugin.id, "twilio-phone-gateway");
+    assert.strictEqual(plugin.id, "clawphone");
   });
 
   it("has a name string", () => {
@@ -24,7 +24,7 @@ describe("plugin manifest", () => {
       registerService(config) { captured = config; },
     });
     assert.ok(captured, "registerService should have been called");
-    assert.strictEqual(captured.name, "twilio-phone-gateway");
+    assert.strictEqual(captured.name, "clawphone");
     assert.strictEqual(typeof captured.start, "function");
   });
 });

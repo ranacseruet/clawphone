@@ -4,7 +4,7 @@
 
 Please **do not** report security vulnerabilities through public GitHub issues.
 
-Instead, open a [GitHub Security Advisory](https://github.com/ranacseruet/twilio-phone-gateway/security/advisories/new) (private disclosure). You can expect an acknowledgement within 48 hours and a patch or mitigation plan within 14 days.
+Instead, open a [GitHub Security Advisory](https://github.com/ranacseruet/clawphone/security/advisories/new) (private disclosure). You can expect an acknowledgement within 48 hours and a patch or mitigation plan within 14 days.
 
 Please include:
 

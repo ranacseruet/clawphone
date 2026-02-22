@@ -24,6 +24,6 @@ Examples of unacceptable behavior:
 
 ## Enforcement
 
-Project maintainers are responsible for clarifying and enforcing these standards. Instances of unacceptable behavior may be reported by opening a [GitHub Security Advisory](https://github.com/ranacseruet/twilio-phone-gateway/security/advisories/new) (for privacy) or by contacting the maintainers directly via GitHub.
+Project maintainers are responsible for clarifying and enforcing these standards. Instances of unacceptable behavior may be reported by opening a [GitHub Security Advisory](https://github.com/ranacseruet/clawphone/security/advisories/new) (for privacy) or by contacting the maintainers directly via GitHub.
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.

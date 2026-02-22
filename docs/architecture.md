@@ -2,7 +2,7 @@
 
 ## Overview
 
-twilio-phone-gateway is a Node.js HTTP server (ES Modules, no framework) that receives Twilio voice and SMS webhooks, forwards them to the [OpenClaw](https://github.com/openclaw/openclaw) agent, and returns TwiML responses.
+clawphone is a Node.js HTTP server (ES Modules, no framework) that receives Twilio voice and SMS webhooks, forwards them to the [OpenClaw](https://github.com/openclaw/openclaw) agent, and returns TwiML responses.
 
 It has two deployment modes that share the same HTTP server factory (`lib/http-server.mjs`):
 

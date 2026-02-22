@@ -42,17 +42,17 @@ node --test test/sms.test.mjs
 PM2 (production):
 ```bash
 pm2 start ecosystem.config.cjs
-pm2 logs twilio-phone-gateway
+pm2 logs clawphone
 ```
 
 OpenClaw plugin (quick reference — full guide in `docs/plugin-install.md`):
 ```bash
-openclaw plugins install ranacseruet/twilio-phone-gateway  # from GitHub
+openclaw plugins install ranacseruet/clawphone  # from GitHub
 openclaw plugins install --link .                          # local dev (live symlink)
-openclaw config set plugins.allow '["twilio-phone-gateway"]'
+openclaw config set plugins.allow '["clawphone"]'
 openclaw plugins list                                      # verify "loaded"
 openclaw gateway stop && openclaw gateway install          # restart to reload
-openclaw plugins update twilio-phone-gateway               # update (GitHub/npm installs)
+openclaw plugins update clawphone               # update (GitHub/npm installs)
 ```
 
 ## Architecture

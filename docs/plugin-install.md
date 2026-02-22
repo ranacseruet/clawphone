@@ -1,6 +1,6 @@
 # OpenClaw Plugin Installation
 
-twilio-phone-gateway can run as an **OpenClaw plugin**, which means the gateway process hosts it in-process alongside other OpenClaw extensions — no separate Node server or PM2 required.
+clawphone can run as an **OpenClaw plugin**, which means the gateway process hosts it in-process alongside other OpenClaw extensions — no separate Node server or PM2 required.
 
 ## Prerequisites
 
@@ -16,15 +16,15 @@ Install from GitHub, configure, and start — the full flow in one place:
 
 ```bash
 # Install from GitHub (supports openclaw plugins update later)
-openclaw plugins install ranacseruet/twilio-phone-gateway
+openclaw plugins install ranacseruet/clawphone
 
 # Trust the plugin
-openclaw config set plugins.allow '["twilio-phone-gateway"]'
+openclaw config set plugins.allow '["clawphone"]'
 
 # Configure (fill in your real values)
-openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAuthToken '"your_auth_token_here"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.publicBaseUrl '"https://your-tunnel.example.com"'
+openclaw config set plugins.entries.clawphone.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
+openclaw config set plugins.entries.clawphone.config.twilioAuthToken '"your_auth_token_here"'
+openclaw config set plugins.entries.clawphone.config.publicBaseUrl '"https://your-tunnel.example.com"'
 
 # Start
 openclaw gateway stop && openclaw gateway install
@@ -53,23 +53,23 @@ Choose the method that fits your use case:
 Installs directly from the GitHub repository. Supports `openclaw plugins update` to pull new versions.
 
 ```bash
-openclaw plugins install ranacseruet/twilio-phone-gateway
+openclaw plugins install ranacseruet/clawphone
 ```
 
 Pin to a specific branch or tag:
 
 ```bash
-openclaw plugins install ranacseruet/twilio-phone-gateway#main
-openclaw plugins install ranacseruet/twilio-phone-gateway#v1.2.0
+openclaw plugins install ranacseruet/clawphone#main
+openclaw plugins install ranacseruet/clawphone#v1.2.0
 ```
 
 ### From npm (when published)
 
 ```bash
-openclaw plugins install @openclaw/twilio-phone-gateway
+openclaw plugins install @openclaw/clawphone
 
 # Pin to exact resolved version
-openclaw plugins install --pin @openclaw/twilio-phone-gateway
+openclaw plugins install --pin @openclaw/clawphone
 ```
 
 ### From a local directory (development)
@@ -95,7 +95,7 @@ Use `--link` during active development to avoid the manual file-copy update work
 OpenClaw requires plugins to be explicitly allowed before they load:
 
 ```bash
-openclaw config set plugins.allow '["twilio-phone-gateway"]'
+openclaw config set plugins.allow '["clawphone"]'
 ```
 
 ---
@@ -106,32 +106,32 @@ All configuration is set via `openclaw config set`. String values must be JSON-q
 
 ```bash
 # Required — Twilio credentials
-openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAuthToken '"your_auth_token_here"'
+openclaw config set plugins.entries.clawphone.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
+openclaw config set plugins.entries.clawphone.config.twilioAuthToken '"your_auth_token_here"'
 
 # Required — public URL of this server as Twilio sees it (your tunnel URL)
-openclaw config set plugins.entries.twilio-phone-gateway.config.publicBaseUrl '"https://your-tunnel.example.com"'
+openclaw config set plugins.entries.clawphone.config.publicBaseUrl '"https://your-tunnel.example.com"'
 
 # Optional — phone number allowlist (E.164 format); omit to allow all numbers
-openclaw config set plugins.entries.twilio-phone-gateway.config.allowFrom '["+15550001111","+15550002222"]'
+openclaw config set plugins.entries.clawphone.config.allowFrom '["+15550001111","+15550002222"]'
 
 # Optional — override the outbound SMS sender number
-openclaw config set plugins.entries.twilio-phone-gateway.config.twilioSmsFrom '"+15550003333"'
+openclaw config set plugins.entries.clawphone.config.twilioSmsFrom '"+15550003333"'
 
 # Optional — Discord channel ID for call/SMS logging
-openclaw config set plugins.entries.twilio-phone-gateway.config.discordLogChannelId '"1234567890123456789"'
+openclaw config set plugins.entries.clawphone.config.discordLogChannelId '"1234567890123456789"'
 
 # Optional — display names (used in Discord logs and agent prompt framing)
-openclaw config set plugins.entries.twilio-phone-gateway.config.callerName '"Alice"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.agentName '"Bot"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.greetingText '"You are connected. Say something after the beep."'
+openclaw config set plugins.entries.clawphone.config.callerName '"Alice"'
+openclaw config set plugins.entries.clawphone.config.agentName '"Bot"'
+openclaw config set plugins.entries.clawphone.config.greetingText '"You are connected. Say something after the beep."'
 
 # Optional — server port (default: 8787)
-openclaw config set plugins.entries.twilio-phone-gateway.config.port 8787
+openclaw config set plugins.entries.clawphone.config.port 8787
 
 # Optional — OpenClaw session and agent IDs (defaults match the "phone" agent)
-openclaw config set plugins.entries.twilio-phone-gateway.config.openclawSessionId '"phone"'
-openclaw config set plugins.entries.twilio-phone-gateway.config.openclawAgentId '"phone"'
+openclaw config set plugins.entries.clawphone.config.openclawSessionId '"phone"'
+openclaw config set plugins.entries.clawphone.config.openclawAgentId '"phone"'
 ```
 
 ---
@@ -153,8 +153,8 @@ openclaw plugins list
 The plugin should appear with status **loaded**. If it shows **disabled** or is missing, check:
 
 ```bash
-openclaw config get plugins.allow          # should include "twilio-phone-gateway"
-openclaw config get plugins.entries.twilio-phone-gateway
+openclaw config get plugins.allow          # should include "clawphone"
+openclaw config get plugins.entries.clawphone
 ```
 
 You can also hit the health endpoint:
@@ -187,7 +187,7 @@ Cloudflared prints a public URL like `https://xxxx.trycloudflare.com`. In the [T
 
 | Install method | How to update |
 |---|---|
-| GitHub / npm | `openclaw plugins update twilio-phone-gateway` |
+| GitHub / npm | `openclaw plugins update clawphone` |
 | Local `--link` | No action needed — changes are live immediately |
 | Local copy (`.`) | Re-run `openclaw plugins install .` or copy changed files manually, then restart |
 
@@ -203,11 +203,11 @@ openclaw gateway stop && openclaw gateway install
 
 ```bash
 # Disable (keeps config, stops loading)
-openclaw plugins disable twilio-phone-gateway
+openclaw plugins disable clawphone
 openclaw gateway stop && openclaw gateway install
 
 # Remove entirely
-openclaw plugins uninstall twilio-phone-gateway
+openclaw plugins uninstall clawphone
 ```
 
 ---

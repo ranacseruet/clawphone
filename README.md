@@ -1,4 +1,4 @@
-# twilio-phone-gateway
+# clawphone
 
 A Node.js HTTP gateway that bridges Twilio voice calls and SMS to the **OpenClaw** agent. No framework — raw `node:http`, ES Modules only.
 
@@ -40,8 +40,8 @@ Cloudflared prints a public URL like `https://xxxx.trycloudflare.com`. In the [T
 
 ```bash
 pm2 start ecosystem.config.cjs
-pm2 logs twilio-phone-gateway
-pm2 restart twilio-phone-gateway
+pm2 logs clawphone
+pm2 restart clawphone
 ```
 
 ## OpenClaw plugin mode

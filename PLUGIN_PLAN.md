@@ -2,7 +2,7 @@
 
 ## Goal
 
-Convert `twilio-phone-gateway` from a standalone Node.js server managed by PM2 into an
+Convert `clawphone` from a standalone Node.js server managed by PM2 into an
 OpenClaw plugin installable via `openclaw plugins install`. The server must continue to
 work via PM2 throughout both phases — no breaking changes to the standalone path.
 
@@ -11,7 +11,7 @@ work via PM2 throughout both phases — no breaking changes to the standalone pa
 ## Current Architecture (as of dfac08c)
 
 ```
-twilio-phone-gateway/
+clawphone/
 ├── server.mjs              # Top-level HTTP server script (entry point for PM2)
 ├── ecosystem.config.cjs    # PM2 config — runs `node server.mjs` on port 8787
 ├── lib/
@@ -65,7 +65,7 @@ break this. The standalone path is the fallback for both phases.
 
 ## Phase 1 — Plugin Packaging (no agent API changes) ✅ COMPLETE (commit: see git log)
 
-**Outcome:** `openclaw plugins install ./twilio-phone-gateway` works. PM2 unchanged.
+**Outcome:** `openclaw plugins install ./clawphone` works. PM2 unchanged.
 Agent invocation still goes through the `openclaw` CLI subprocess — no change to
 `lib/agent.mjs`.
 
@@ -81,7 +81,7 @@ Phase 2 should update `lib/http-server.mjs` (not `server.mjs`) when threading `a
 
 ```json
 {
-  "name": "@openclaw/twilio-phone-gateway",
+  "name": "@openclaw/clawphone",
   "version": "1.0.0",
   "description": "Twilio voice and SMS gateway plugin for OpenClaw",
   "type": "module",
@@ -105,7 +105,7 @@ Remove `"private": true`. Keep `dotenv` — still used by the standalone path.
 
 ```json
 {
-  "id": "twilio-phone-gateway",
+  "id": "clawphone",
   "configSchema": {
     "type": "object",
     "required": ["twilioAccountSid", "twilioAuthToken"],
@@ -139,12 +139,12 @@ Remove `"private": true`. Keep `dotenv` — still used by the standalone path.
 import { createServer } from "./server.mjs";
 
 export default {
-  id: "twilio-phone-gateway",
+  id: "clawphone",
   name: "Twilio Phone Gateway",
 
   register(api) {
     api.registerService({
-      name: "twilio-phone-gateway",
+      name: "clawphone",
       start: async (pluginConfig) => {
         const server = await createServer(pluginConfig);
         return {
@@ -225,7 +225,7 @@ export async function createServer(config) {
 
   // warn on misconfiguration (moved here from config.mjs module scope)
   if (TWILIO_AUTH_TOKEN && !PUBLIC_BASE_URL) {
-    console.warn("[twilio-phone-gateway] WARNING: TWILIO_AUTH_TOKEN is set but PUBLIC_BASE_URL is not — webhook signature validation will be skipped.");
+    console.warn("[clawphone] WARNING: TWILIO_AUTH_TOKEN is set but PUBLIC_BASE_URL is not — webhook signature validation will be skipped.");
   }
 
   const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN)
@@ -236,7 +236,7 @@ export async function createServer(config) {
 
   return new Promise((resolve) => {
     server.listen(PORT, () => {
-      console.log(`twilio-phone-gateway listening on http://localhost:${PORT}`);
+      console.log(`clawphone listening on http://localhost:${PORT}`);
       resolve(server);
     });
   });
@@ -268,7 +268,7 @@ tests.
 Optionally add a smoke test in `test/plugin.test.mjs`:
 ```js
 import { default as plugin } from "../index.mjs";
-assert.strictEqual(plugin.id, "twilio-phone-gateway");
+assert.strictEqual(plugin.id, "clawphone");
 assert.strictEqual(typeof plugin.register, "function");
 ```
 
@@ -276,18 +276,18 @@ assert.strictEqual(typeof plugin.register, "function");
 
 ```bash
 # Development (symlink, no copy)
-openclaw plugins install -l ./twilio-phone-gateway
+openclaw plugins install -l ./clawphone
 
 # Production (from npm once published)
-openclaw plugins install @openclaw/twilio-phone-gateway
+openclaw plugins install @openclaw/clawphone
 
 # Configure
-openclaw plugins config twilio-phone-gateway set twilioAccountSid ACxxx
-openclaw plugins config twilio-phone-gateway set twilioAuthToken xxx
-openclaw plugins config twilio-phone-gateway set publicBaseUrl https://twilio.i2dev.com
+openclaw plugins config clawphone set twilioAccountSid ACxxx
+openclaw plugins config clawphone set twilioAuthToken xxx
+openclaw plugins config clawphone set publicBaseUrl https://twilio.i2dev.com
 
 # Enable
-openclaw plugins enable twilio-phone-gateway
+openclaw plugins enable clawphone
 ```
 
 PM2 continues working identically via `pm2 start ecosystem.config.cjs`.

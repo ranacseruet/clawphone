@@ -1,4 +1,4 @@
-# Contributing to twilio-phone-gateway
+# Contributing to clawphone
 
 Thank you for your interest in contributing!
 
@@ -7,8 +7,8 @@ Thank you for your interest in contributing!
 **Requirements:** Node.js ≥ 22, npm, `openclaw` CLI on `$PATH`
 
 ```bash
-git clone https://github.com/ranacseruet/twilio-phone-gateway.git
-cd twilio-phone-gateway
+git clone https://github.com/ranacseruet/clawphone.git
+cd clawphone
 npm install
 cp .env.example .env   # fill in your credentials
 ```
@@ -37,7 +37,7 @@ Tests are fully isolated — no real Twilio API calls, no Discord messages, no l
 
 ## Reporting bugs
 
-Please use [GitHub Issues](https://github.com/ranacseruet/twilio-phone-gateway/issues) and include:
+Please use [GitHub Issues](https://github.com/ranacseruet/clawphone/issues) and include:
 
 - Node.js version (`node --version`)
 - Steps to reproduce

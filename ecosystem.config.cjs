@@ -3,7 +3,7 @@ const { join } = require('path');
 module.exports = {
   apps: [
     {
-      name: 'twilio-phone-gateway',
+      name: 'clawphone',
       script: './server.mjs',
       cwd: __dirname,
       env: {
