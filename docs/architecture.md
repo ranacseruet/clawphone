@@ -129,7 +129,7 @@ skills/phone/SKILL.md   Agent skill definition (prompt framing docs)
 
 ## Testing
 
-Tests use Node's built-in `node:test` runner (~129 tests across 9 files). No external test framework.
+Tests use Node's built-in `node:test` runner (~144 tests across 10 files). No external test framework.
 
 The integration test suite (`test/server.test.mjs`) isolates against all external services:
 
