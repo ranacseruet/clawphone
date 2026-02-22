@@ -12,11 +12,15 @@ clawphone can run as an **OpenClaw plugin**, which means the gateway process hos
 
 ## Recommended approach
 
-Install from GitHub, configure, and start — the full flow in one place:
+Clone, install, configure, and start — the full flow in one place:
 
 ```bash
-# Install from GitHub (supports openclaw plugins update later)
-openclaw plugins install ranacseruet/clawphone
+# Clone the repo
+git clone https://github.com/ranacseruet/clawphone.git
+cd clawphone && npm install
+
+# Install as an OpenClaw plugin
+openclaw plugins install .
 
 # Trust the plugin
 openclaw config set plugins.allow '["clawphone"]'
@@ -30,11 +34,11 @@ openclaw config set plugins.entries.clawphone.config.publicBaseUrl '"https://you
 openclaw gateway stop && openclaw gateway install
 
 # Verify
-openclaw plugins list   # should show "loaded"
-curl http://localhost:8787/health  # → {"ok":true}
+openclaw plugins list                  # should show "loaded"
+curl http://localhost:8787/health      # → {"ok":true}
 ```
 
-For local development, replace the install line with:
+For local development, replace `openclaw plugins install .` with:
 
 ```bash
 openclaw plugins install --link .   # symlink — code changes are picked up immediately
@@ -46,22 +50,7 @@ See the sections below for the full config reference, Twilio webhook setup, and 
 
 ## 1. Install the plugin
 
-Choose the method that fits your use case:
-
-### From GitHub (recommended)
-
-Installs directly from the GitHub repository. Supports `openclaw plugins update` to pull new versions.
-
-```bash
-openclaw plugins install ranacseruet/clawphone
-```
-
-Pin to a specific branch or tag:
-
-```bash
-openclaw plugins install ranacseruet/clawphone#main
-openclaw plugins install ranacseruet/clawphone#v1.2.0
-```
+`openclaw plugins install` accepts a **local path** or an **npm registry package name**. GitHub URLs and shorthands are not supported.
 
 ### From npm (when published)
 
@@ -72,11 +61,15 @@ openclaw plugins install @openclaw/clawphone
 openclaw plugins install --pin @openclaw/clawphone
 ```
 
-### From a local directory (development)
+Supports `openclaw plugins update clawphone` to pull newer versions.
+
+### From a local clone
 
 Copy install (one-time snapshot — changes are **not** picked up automatically):
 
 ```bash
+git clone https://github.com/ranacseruet/clawphone.git
+cd clawphone && npm install
 openclaw plugins install .
 ```
 
@@ -187,9 +180,9 @@ Cloudflared prints a public URL like `https://xxxx.trycloudflare.com`. In the [T
 
 | Install method | How to update |
 |---|---|
-| GitHub / npm | `openclaw plugins update clawphone` |
+| npm registry | `openclaw plugins update clawphone` |
 | Local `--link` | No action needed — changes are live immediately |
-| Local copy (`.`) | Re-run `openclaw plugins install .` or copy changed files manually, then restart |
+| Local copy (`.`) | `git pull && npm install`, then re-run `openclaw plugins install .` and restart |
 
 Restart after any update:
 
@@ -220,5 +213,5 @@ openclaw plugins uninstall clawphone
 | **Agent calls** | In-process (`runEmbeddedPiAgent`) | Child process (`openclaw agent …`) |
 | **Config** | `openclaw config set …` | `.env` file |
 | **Startup** | `openclaw gateway install` | `pm2 start ecosystem.config.cjs` |
-| **Updates** | `openclaw plugins update` (GitHub/npm) | `git pull` + `pm2 restart` |
+| **Updates** | `openclaw plugins update` (npm) or `git pull` + reinstall | `git pull` + `pm2 restart` |
 | **Best for** | Running alongside other OpenClaw extensions | Isolated deployment, Docker, servers without OpenClaw gateway |

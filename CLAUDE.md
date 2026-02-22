@@ -47,12 +47,13 @@ pm2 logs clawphone
 
 OpenClaw plugin (quick reference — full guide in `docs/plugin-install.md`):
 ```bash
-openclaw plugins install ranacseruet/clawphone  # from GitHub
-openclaw plugins install --link .                          # local dev (live symlink)
+openclaw plugins install .            # local copy (note: GitHub URLs not supported)
+openclaw plugins install --link .     # local dev (live symlink)
+openclaw plugins install @openclaw/clawphone  # from npm registry (when published)
 openclaw config set plugins.allow '["clawphone"]'
-openclaw plugins list                                      # verify "loaded"
-openclaw gateway stop && openclaw gateway install          # restart to reload
-openclaw plugins update clawphone               # update (GitHub/npm installs)
+openclaw plugins list                 # verify "loaded"
+openclaw gateway stop && openclaw gateway install  # restart to reload
+openclaw plugins update clawphone     # update (npm installs only)
 ```
 
 ## Architecture
