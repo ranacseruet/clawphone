@@ -1,5 +1,5 @@
 // @ts-check
-import { describe, it, beforeEach } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
 
 // We need to reset state between tests, so we'll re-import

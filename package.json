@@ -37,14 +37,18 @@
   },
   "scripts": {
     "test": "node --test",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "lint": "eslint ."
   },
   "dependencies": {
     "dotenv": "^17.3.1",
     "twilio": "^5.8.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.0",
+    "eslint": "^10.0.1",
+    "globals": "^17.3.0",
     "typescript": "^5.9.3"
   }
 }
