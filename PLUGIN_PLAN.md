@@ -300,69 +300,247 @@ PM2 continues working identically via `pm2 start ecosystem.config.cjs`.
 when running as a plugin. Standalone/PM2 path falls back to the CLI subprocess.
 PM2 still works unchanged.
 
-### 2.1 — Open question (must resolve before implementing)
+### 2.1 — Research findings ✅ RESOLVED
 
-The OpenClaw plugin docs (`https://docs.openclaw.ai/tools/plugin`) do not document a
-direct agent invocation API. Before implementing Phase 2, confirm:
+SDK location: `/opt/homebrew/lib/node_modules/openclaw/`
+Reference implementation: `/opt/homebrew/lib/node_modules/openclaw/extensions/voice-call/`
 
-1. Does `api` expose an agent invocation method? Candidates to check:
-   - `api.agent.invoke({ userText, sessionId, agentId, mode })`
-   - `api.agent.chat(...)`
-   - `api.runtime.agent.send(...)`
-2. What does it return? Presumably a string (the reply text).
-3. Is it async? Does it support a timeout?
-4. Is there a Discord/notification logging API (`api.notify(...)` or similar) to replace
-   the `openclaw message send` subprocess call in `discordLog()`?
+#### Agent invocation: `runEmbeddedPiAgent`
 
-**Where to look:**
-- OpenClaw SDK source: `~/.openclaw/` or the npm package `openclaw` / `@openclaw/sdk`
-- `openclaw plugins doctor` output may hint at available API surface
-- The bundled `extensions/voice-call` plugin source referenced in the docs
+There is **no** `api.agent.invoke()`. The function is `runEmbeddedPiAgent`, accessed by
+dynamic import from `dist/extensionAPI.js` (same pattern as the bundled voice-call extension):
+
+```js
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+
+// Resolve openclaw root dynamically (same package that OpenClaw itself lives in)
+function resolveOpenClawRoot() {
+  return join(new URL(import.meta.resolve("openclaw")).pathname, "..", "..");
+}
+
+async function loadCoreDeps() {
+  const distPath = join(resolveOpenClawRoot(), "dist", "extensionAPI.js");
+  return import(pathToFileURL(distPath).href);
+}
+```
+
+`extensionAPI.js` exports: `runEmbeddedPiAgent`, `resolveStorePath`, `loadSessionStore`,
+`saveSessionStore`, `resolveSessionFilePath`, `ensureAgentWorkspace`, `resolveAgentDir`,
+`resolveAgentWorkspaceDir`, `resolveAgentTimeoutMs`, `resolveThinkingDefault`,
+`resolveAgentIdentity`, `DEFAULT_MODEL`, `DEFAULT_PROVIDER`.
+
+**Signature:**
+```typescript
+runEmbeddedPiAgent(params: RunEmbeddedPiAgentParams): Promise<EmbeddedPiRunResult>
+```
+
+**Key params:**
+```typescript
+{
+  sessionId: string;       // UUID (persistent per caller, stored in session store)
+  sessionKey: string;      // e.g. "voice:+15551234567" or "sms:+15551234567"
+  sessionFile: string;     // Path to JSONL transcript (from resolveSessionFilePath)
+  workspaceDir: string;    // Agent workspace dir (from resolveAgentWorkspaceDir)
+  agentDir?: string;       // From resolveAgentDir(config, agentId)
+  config: OpenClawConfig;  // api.config (full loaded config)
+  prompt: string;          // The user message
+  messageProvider: string; // "voice" or "sms"
+  agentId?: string;        // e.g. "phone"
+  provider?: string;       // e.g. "anthropic"
+  model?: string;          // e.g. "claude-sonnet-4-6"
+  thinkLevel?: ThinkLevel; // resolveThinkingDefault(...)
+  verboseLevel?: string;   // "off" recommended for embedded calls
+  timeoutMs: number;       // resolveAgentTimeoutMs({ cfg })
+  runId: string;           // e.g. `voice:${callId}:${Date.now()}`
+  lane?: string;           // "voice" or "sms" (concurrency lane)
+  extraSystemPrompt?: string; // Injected into system prompt
+  abortSignal?: AbortSignal;
+}
+```
+
+**Return — extracting reply text:**
+```js
+const texts = (result.payloads ?? [])
+  .filter(p => p.text && !p.isError)
+  .map(p => p.text?.trim())
+  .filter(Boolean);
+const reply = texts.join(" ") || null;
+```
+
+**Complete call pattern** (from `extensions/voice-call/src/response-generator.ts`):
+```js
+async function agentReply({ prompt, sessionKey, agentId, messageProvider, callId, api }) {
+  const deps = await loadCoreDeps();
+  const cfg = api.config;
+
+  const storePath = deps.resolveStorePath(cfg.session?.store, { agentId });
+  const agentDir = deps.resolveAgentDir(cfg, agentId);
+  const workspaceDir = deps.resolveAgentWorkspaceDir(cfg, agentId);
+  await deps.ensureAgentWorkspace({ dir: workspaceDir });
+
+  const store = deps.loadSessionStore(storePath);
+  let entry = store[sessionKey] ?? { sessionId: crypto.randomUUID(), updatedAt: Date.now() };
+  store[sessionKey] = { ...entry, updatedAt: Date.now() };
+  await deps.saveSessionStore(storePath, store);
+
+  const sessionFile = deps.resolveSessionFilePath(entry.sessionId, entry, { agentId });
+  const timeoutMs = deps.resolveAgentTimeoutMs({ cfg });
+  const thinkLevel = deps.resolveThinkingDefault({ cfg, provider: "anthropic", model: DEFAULT_MODEL });
+
+  const result = await deps.runEmbeddedPiAgent({
+    sessionId: entry.sessionId,
+    sessionKey,
+    messageProvider,
+    sessionFile,
+    workspaceDir,
+    agentDir,
+    config: cfg,
+    prompt,
+    provider: "anthropic",
+    model: deps.DEFAULT_MODEL,
+    thinkLevel,
+    verboseLevel: "off",
+    timeoutMs,
+    runId: `${messageProvider}:${callId}:${Date.now()}`,
+    lane: messageProvider,
+  });
+
+  return (result.payloads ?? [])
+    .filter(p => p.text && !p.isError)
+    .map(p => p.text?.trim())
+    .filter(Boolean)
+    .join(" ") || null;
+}
+```
+
+#### Discord logging: `api.runtime.channel.discord.sendMessageDiscord`
+
+No `api.notify()` shorthand. Use directly:
+```js
+await api.runtime.channel.discord.sendMessageDiscord(
+  channelId,    // DISCORD_LOG_CHANNEL_ID
+  text,
+  { accountId: "default" }
+);
+```
+
+#### `api` object shape (relevant fields for Phase 2)
+```typescript
+{
+  config: OpenClawConfig;          // Full openclaw.json config (needed by runEmbeddedPiAgent)
+  pluginConfig?: Record<string, unknown>;
+  runtime: {
+    channel: {
+      discord: { sendMessageDiscord(to, text, opts?) }
+      telegram: { sendMessageTelegram(to, text, opts?) }
+      // ...
+    }
+    // ...
+  };
+  logger: { info, warn, error, debug? };
+  registerService(...): void;
+  // ...
+}
+```
 
 ### 2.2 — `lib/agent.mjs` refactor (dual-path)
 
 The key design: `openclawReply` and `discordLog` accept an optional `_api` parameter.
-When `_api` is present (plugin context), use the native API. When absent (standalone),
-fall back to the CLI subprocess. No other file changes needed.
+When `_api` is present (plugin context), use `runEmbeddedPiAgent` / `sendMessageDiscord`.
+When absent (standalone), fall back to the existing CLI subprocess. No other file changes
+needed beyond threading `_api` through (see 2.3).
+
+A new `lib/embedded-agent.mjs` module (or top of `lib/agent.mjs`) handles the lazy load
+of `extensionAPI.js` so it only runs when actually needed (not at module import time):
 
 ```js
-// Existing semaphore and OPENCLAW_* config reads stay at module scope for standalone path
+// lib/agent.mjs
+
+// Lazy-loaded once on first plugin-path call
+let _coreDeps = null;
+async function getCoreDeps() {
+  if (_coreDeps) return _coreDeps;
+  const { join } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  // Resolve the openclaw package root from the installed binary location
+  const root = join(new URL(import.meta.resolve("openclaw")).pathname, "..", "..");
+  const distPath = join(root, "dist", "extensionAPI.js");
+  _coreDeps = await import(pathToFileURL(distPath).href);
+  return _coreDeps;
+}
 
 export async function openclawReply({ userText, mode, _api }) {
-  // ── Plugin path (Phase 2) ──────────────────────────────────────────────
-  if (_api?.agent?.invoke) {
-    return _semaphore.run(() =>
-      withTimeout(
-        _api.agent.invoke({
-          userText,
-          sessionId: OPENCLAW_PHONE_SESSION_ID,
-          agentId:   OPENCLAW_AGENT_ID,
-          mode,      // "sms" | "voice" — controls system prompt constraints
-        }),
-        OPENCLAW_TIMEOUT_SECONDS * 1000
-      )
-    );
+  // ── Plugin path ────────────────────────────────────────────────────────
+  if (_api) {
+    const deps = await getCoreDeps();
+    const cfg = _api.config;
+    // sessionKey scoped by mode so voice and SMS share history per-caller
+    const sessionKey = `${mode}:${OPENCLAW_PHONE_SESSION_ID}`;
+    const storePath = deps.resolveStorePath(cfg.session?.store, { agentId: OPENCLAW_AGENT_ID });
+    const agentDir = deps.resolveAgentDir(cfg, OPENCLAW_AGENT_ID);
+    const workspaceDir = deps.resolveAgentWorkspaceDir(cfg, OPENCLAW_AGENT_ID);
+    await deps.ensureAgentWorkspace({ dir: workspaceDir });
+
+    const store = deps.loadSessionStore(storePath);
+    const entry = store[sessionKey] ?? { sessionId: crypto.randomUUID(), updatedAt: Date.now() };
+    store[sessionKey] = { ...entry, updatedAt: Date.now() };
+    await deps.saveSessionStore(storePath, store);
+
+    const sessionFile = deps.resolveSessionFilePath(entry.sessionId, entry, { agentId: OPENCLAW_AGENT_ID });
+    const timeoutMs = deps.resolveAgentTimeoutMs({ cfg });
+
+    // Build prompt the same way the CLI path does (preserve existing framing)
+    const prompt = _buildPrompt(userText, mode);
+
+    await agentSem.acquire();
+    try {
+      const result = await deps.runEmbeddedPiAgent({
+        sessionId:       entry.sessionId,
+        sessionKey,
+        messageProvider: mode,          // "voice" | "sms"
+        sessionFile,
+        workspaceDir,
+        agentDir,
+        config:          cfg,
+        prompt,
+        verboseLevel:    "off",
+        timeoutMs,
+        runId:           `${mode}:${Date.now()}`,
+        lane:            mode,
+      });
+      return (result.payloads ?? [])
+        .filter(p => p.text && !p.isError)
+        .map(p => p.text?.trim())
+        .filter(Boolean)
+        .join(" ") || "";
+    } finally {
+      agentSem.release();
+    }
   }
 
-  // ── Standalone path (Phase 1 / PM2 fallback) ───────────────────────────
-  return _spawnOpenclaw({ userText, mode });
+  // ── Standalone / PM2 fallback ──────────────────────────────────────────
+  return _spawnOpenclawReply({ userText, mode });
 }
 
 export async function discordLog({ text, _api }) {
   if (!DISCORD_LOG_CHANNEL_ID) return;
 
   // ── Plugin path ────────────────────────────────────────────────────────
-  if (_api?.notify) {
-    return _api.notify({ channelId: DISCORD_LOG_CHANNEL_ID, text }).catch(() => {});
+  if (_api) {
+    return _api.runtime.channel.discord
+      .sendMessageDiscord(DISCORD_LOG_CHANNEL_ID, text, { accountId: "default" })
+      .catch(() => {});
   }
 
-  // ── Standalone path ────────────────────────────────────────────────────
+  // ── Standalone / PM2 fallback ──────────────────────────────────────────
   return _spawnDiscordLog(text);
 }
 ```
 
-`_spawnOpenclaw` and `_spawnDiscordLog` are the existing implementation bodies, just
-renamed into private functions.
+`_spawnOpenclawReply` and `_spawnDiscordLog` are the existing implementation bodies,
+just renamed into private functions. `_buildPrompt` extracts the prompt-construction
+logic already in the current `openclawReply` (the `instruction` + `prompt` lines).
 
 ### 2.3 — Thread `_api` through `server.mjs` and `lib/sms.mjs`
 
