@@ -10,6 +10,40 @@ twilio-phone-gateway can run as an **OpenClaw plugin**, which means the gateway 
 
 ---
 
+## Recommended approach
+
+Install from GitHub, configure, and start — the full flow in one place:
+
+```bash
+# Install from GitHub (supports openclaw plugins update later)
+openclaw plugins install ranacseruet/twilio-phone-gateway
+
+# Trust the plugin
+openclaw config set plugins.allow '["twilio-phone-gateway"]'
+
+# Configure (fill in your real values)
+openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
+openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAuthToken '"your_auth_token_here"'
+openclaw config set plugins.entries.twilio-phone-gateway.config.publicBaseUrl '"https://your-tunnel.example.com"'
+
+# Start
+openclaw gateway stop && openclaw gateway install
+
+# Verify
+openclaw plugins list   # should show "loaded"
+curl http://localhost:8787/health  # → {"ok":true}
+```
+
+For local development, replace the install line with:
+
+```bash
+openclaw plugins install --link .   # symlink — code changes are picked up immediately
+```
+
+See the sections below for the full config reference, Twilio webhook setup, and update workflow.
+
+---
+
 ## 1. Install the plugin
 
 Choose the method that fits your use case:
