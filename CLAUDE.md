@@ -90,7 +90,7 @@ All configuration is via environment variables (standalone path), centralized in
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | — | Twilio credentials (required for async SMS) |
 | `PUBLIC_BASE_URL` | *(none)* | Public URL of this server (e.g. `https://twilio.i2dev.com`); when set alongside `TWILIO_AUTH_TOKEN`, all webhook POSTs are signature-verified (403 on failure) |
 | `TWILIO_SMS_FROM` | *(inbound `To`)* | Override sender number for outbound async SMS |
-| `OPENCLAW_PHONE_SESSION_ID` | `phone-rana` | OpenClaw session ID |
+| `OPENCLAW_PHONE_SESSION_ID` | `phone` | OpenClaw session ID |
 | `OPENCLAW_AGENT_ID` | `phone` | OpenClaw agent ID |
 | `OPENCLAW_MAX_CONCURRENT` | `10` | Max simultaneous agent invocations |
 | `DISCORD_LOG_CHANNEL_ID` | *(disabled)* | Discord channel for call/SMS logging |
