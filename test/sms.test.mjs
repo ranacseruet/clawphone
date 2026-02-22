@@ -111,6 +111,7 @@ test("handleIncomingSms: unauthorized number returns Unauthorized", async () => 
 
 test("handleIncomingSms: async path handles openclawReply error", async () => {
   const logs = [];
+  const errors = [];
   const res = await handleIncomingSms({
     form: { From: "+15550000001", To: "+15550000002", Body: "hi" },
     deps: {
@@ -126,12 +127,13 @@ test("handleIncomingSms: async path handles openclawReply error", async () => {
     },
     fastTimeoutMs: 10,
     log: (line) => logs.push(line),
+    error: (line) => errors.push(line),
   });
 
   assert.equal(res.didAck, true);
   await res.startAsync();
   // Should have logged the error
-  assert.ok(logs.some((l) => l.includes("Agent error")));
+  assert.ok(errors.some((l) => l.includes("agent error")));
 });
 
 test("handleIncomingSms: async path skips send if twilioSendSms not configured", async () => {
@@ -158,6 +160,7 @@ test("handleIncomingSms: async path skips send if twilioSendSms not configured",
 
 test("handleIncomingSms: async path handles send failure", async () => {
   const logs = [];
+  const errors = [];
   const res = await handleIncomingSms({
     form: { From: "+15550000001", To: "+15550000002", Body: "hi" },
     deps: {
@@ -172,12 +175,13 @@ test("handleIncomingSms: async path handles send failure", async () => {
     },
     fastTimeoutMs: 10,
     log: (line) => logs.push(line),
+    error: (line) => errors.push(line),
   });
 
   assert.equal(res.didAck, true);
   await res.startAsync();
   // Should have logged the failure
-  assert.ok(logs.some((l) => l.includes("async send failed")));
+  assert.ok(errors.some((l) => l.includes("async send failed")));
 });
 
 test("handleIncomingSms: uses custom smsFrom if provided", async () => {
