@@ -9,6 +9,7 @@
  */
 import { createServer } from "./lib/http-server.mjs";
 import { fromPluginConfig } from "./lib/config.mjs";
+import { waitForVoiceDrain } from "./lib/voice-state.mjs";
 
 export default {
   id: "clawphone",
@@ -21,9 +22,12 @@ export default {
       start: async (pluginConfig) => {
         const server = await createServer(fromPluginConfig(pluginConfig), api);
         return {
-          stop: () => new Promise((resolve, reject) =>
-            server.close((err) => err ? reject(err) : resolve(undefined))
-          ),
+          stop: async () => {
+            await new Promise((resolve, reject) =>
+              server.close((err) => (err ? reject(err) : resolve(undefined)))
+            );
+            await waitForVoiceDrain();
+          },
         };
       },
     });
