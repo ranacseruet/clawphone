@@ -119,8 +119,9 @@ describe("voice-state", () => {
       
       createPendingTurn({ key, callSid, from: "+1234", said: "test" });
       completeTurn(key, "");
-      
+
       const turn = getPendingTurn(key);
+      assert.ok(turn);
       assert.strictEqual(turn.reply, "Okay.");
       
       // Cleanup

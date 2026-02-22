@@ -20,7 +20,7 @@ describe("plugin manifest", () => {
   });
 
   it("register calls api.registerService with a name and start function", () => {
-    let captured = null;
+    let captured = /** @type {{ id?: string, name?: string, start?: Function } | null} */ (null);
     plugin.register({
       registerService(config) { captured = config; },
     });

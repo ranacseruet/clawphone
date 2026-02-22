@@ -48,18 +48,21 @@ describe("validateWebhookSignature", () => {
 describe("createTwilioClient", () => {
   it("throws if accountSid is missing", () => {
     assert.throws(() => {
+      // @ts-expect-error — intentionally omitting accountSid to test validation
       createTwilioClient({ authToken: "token" });
     }, /accountSid\/authToken required/);
   });
 
   it("throws if authToken is missing", () => {
     assert.throws(() => {
+      // @ts-expect-error — intentionally omitting authToken to test validation
       createTwilioClient({ accountSid: "sid" });
     }, /accountSid\/authToken required/);
   });
 
   it("throws if both are missing", () => {
     assert.throws(() => {
+      // @ts-expect-error — intentionally omitting both fields to test validation
       createTwilioClient({});
     }, /accountSid\/authToken required/);
   });
@@ -77,7 +80,7 @@ describe("createTwilioClient", () => {
 
   describe("sendSms", () => {
     // Factory that returns a fake Twilio SDK client
-    function makeFakeTwilio({ createResult } = {}) {
+    function makeFakeTwilio({ createResult } = /** @type {{ createResult?: Function }} */ ({})) {
       return () => ({
         messages: {
           create: async (params) =>
@@ -102,6 +105,7 @@ describe("createTwilioClient", () => {
       });
 
       await assert.rejects(
+        // @ts-expect-error — intentionally omitting 'to' to test validation
         client.sendSms({ from: "+1234567890", body: "test" }),
         /Missing to\/from/
       );
@@ -114,6 +118,7 @@ describe("createTwilioClient", () => {
       });
 
       await assert.rejects(
+        // @ts-expect-error — intentionally omitting 'from' to test validation
         client.sendSms({ to: "+1234567890", body: "test" }),
         /Missing to\/from/
       );
@@ -155,6 +160,7 @@ describe("createTwilioClient", () => {
         }),
       });
 
+      // @ts-expect-error — intentionally omitting 'body' to test empty-string fallback
       await client.sendSms({ to: "+15551111111", from: "+15552222222" });
       assert.strictEqual(capturedBody, "");
     });

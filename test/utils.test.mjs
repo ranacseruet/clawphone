@@ -8,7 +8,7 @@ import { parseForm, toSayableText, run, readBody, createSemaphore } from "../lib
 // ─── Mock request factory ───────────────────────────────────────────────────
 
 function makeReq(chunks) {
-  const req = new EventEmitter();
+  const req = /** @type {any} */ (new EventEmitter());
   req.destroy = () => {}; // no-op; readBody no longer calls destroy
   setImmediate(() => {
     for (const chunk of chunks) req.emit("data", Buffer.from(chunk));
@@ -98,14 +98,14 @@ describe("readBody", () => {
 
   it("rejects with statusCode 413 when body exceeds maxBytes", async () => {
     const req = makeReq(["a".repeat(100)]);
-    const err = await readBody(req, 50).catch((e) => e);
+    const err = /** @type {Error & { statusCode: number }} */ (await readBody(req, 50).catch((e) => e));
     assert.ok(err instanceof Error);
     assert.strictEqual(err.statusCode, 413);
     assert.match(err.message, /exceeded/);
   });
 
   it("rejects when the request emits an error", async () => {
-    const req = new EventEmitter();
+    const req = /** @type {any} */ (new EventEmitter());
     req.destroy = () => {};
     setImmediate(() => req.emit("error", new Error("connection reset")));
     await assert.rejects(readBody(req), /connection reset/);

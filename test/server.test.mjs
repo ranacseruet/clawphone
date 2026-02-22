@@ -102,14 +102,14 @@ describe("server integration", () => {
     if (!server.listening) {
       await new Promise((r) => server.once("listening", r));
     }
-    port = server.address().port;
+    port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
   });
 
   after(async () => {
     // Give fire-and-forget background tasks (openclawReply IIFEs) a moment to
     // settle so their error-catch branches register in the coverage report.
     await new Promise((r) => setTimeout(r, 200));
-    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => server.close(() => resolve(undefined)));
     rmSync(fakeBinDir, { recursive: true, force: true });
   });
 

@@ -44,7 +44,7 @@ test("handleIncomingSms: fast path returns full reply and no async", async () =>
       twilioSendSms: async () => {
         calls.send++;
       },
-      smsFrom: null,
+      smsFrom: undefined,
     },
     fastTimeoutMs: 50,
     log: () => {},
@@ -80,13 +80,13 @@ test("handleIncomingSms: slow path acks and sends async follow-up", async () => 
 
   const res = await handleIncomingSms({
     form: { From: "+15550000001", To: "+15550000002", Body: "hi" },
-    deps: { openclawReply, twilioSendSms, smsFrom: null },
+    deps: { openclawReply, twilioSendSms, smsFrom: undefined },
     fastTimeoutMs: 10,
     log: () => {},
   });
 
   assert.equal(res.didAck, true);
-  assert.ok(typeof res.startAsync === "function");
+  assert.ok(res.startAsync);
   assert.match(res.twiml, /thinking/);
 
   await res.startAsync();
@@ -124,7 +124,7 @@ test("handleIncomingSms: async path handles openclawReply error", async () => {
         assert.match(body, /Sorry/);
         return { sid: "SM123" };
       },
-      smsFrom: null,
+      smsFrom: undefined,
     },
     fastTimeoutMs: 10,
     log: (line) => logs.push(line),
@@ -132,6 +132,7 @@ test("handleIncomingSms: async path handles openclawReply error", async () => {
   });
 
   assert.equal(res.didAck, true);
+  assert.ok(res.startAsync);
   await res.startAsync();
   // Should have logged the error
   assert.ok(errors.some((l) => l.includes("agent error")));
@@ -146,14 +147,15 @@ test("handleIncomingSms: async path skips send if twilioSendSms not configured",
         await new Promise((r) => setTimeout(r, 20));
         return "delayed reply";
       },
-      twilioSendSms: null, // Not configured
-      smsFrom: null,
+      twilioSendSms: undefined, // Not configured
+      smsFrom: undefined,
     },
     fastTimeoutMs: 10,
     log: (line) => logs.push(line),
   });
 
   assert.equal(res.didAck, true);
+  assert.ok(res.startAsync);
   await res.startAsync();
   // Should have logged the skip
   assert.ok(logs.some((l) => l.includes("twilioSendSms not configured")));
@@ -172,7 +174,7 @@ test("handleIncomingSms: async path handles send failure", async () => {
       twilioSendSms: async () => {
         throw new Error("Send failed");
       },
-      smsFrom: null,
+      smsFrom: undefined,
     },
     fastTimeoutMs: 10,
     log: (line) => logs.push(line),
@@ -180,6 +182,7 @@ test("handleIncomingSms: async path handles send failure", async () => {
   });
 
   assert.equal(res.didAck, true);
+  assert.ok(res.startAsync);
   await res.startAsync();
   // Should have logged the failure
   assert.ok(errors.some((l) => l.includes("async send failed")));
@@ -204,6 +207,7 @@ test("handleIncomingSms: uses custom smsFrom if provided", async () => {
     log: () => {},
   });
 
+  assert.ok(res.startAsync);
   await res.startAsync();
   assert.equal(sentFrom, "+15553333333");
 });

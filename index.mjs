@@ -22,7 +22,7 @@ export default {
         const server = await createServer(fromPluginConfig(pluginConfig), api);
         return {
           stop: () => new Promise((resolve, reject) =>
-            server.close((err) => err ? reject(err) : resolve())
+            server.close((err) => err ? reject(err) : resolve(undefined))
           ),
         };
       },

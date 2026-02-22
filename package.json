@@ -36,10 +36,15 @@
     ]
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
     "twilio": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "typescript": "^5.9.3"
   }
 }

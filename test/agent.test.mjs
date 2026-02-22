@@ -69,8 +69,9 @@ describe("discordLog", () => {
     }
     // With a channel, saturate the in-flight limit with a slow mock, then verify
     // that an extra call is dropped (run called < total dispatched).
-    let resolveHold;
-    const hold = new Promise((r) => { resolveHold = r; });
+    /** @type {() => void} */
+    let resolveHold = () => {};
+    const hold = new Promise((r) => { resolveHold = /** @type {any} */ (r); });
     let runCallCount = 0;
     const slowRun = async () => { runCallCount++; await hold; return { stdout: "", stderr: "" }; };
 
@@ -116,8 +117,10 @@ describe("openclawReply — plugin path", () => {
     await openclawReply({ userText: "hello", mode: "voice", _api: api, _coreDeps: voiceDeps });
     await openclawReply({ userText: "hello", mode: "sms",   _api: api, _coreDeps: smsDeps  });
 
-    const voiceCall = voiceDeps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
-    const smsCall   = smsDeps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
+    const voiceCalls = /** @type {any[]} */ (voiceDeps.runEmbeddedPiAgent.mock.calls);
+    const smsCalls   = /** @type {any[]} */ (smsDeps.runEmbeddedPiAgent.mock.calls);
+    const voiceCall  = voiceCalls[0].arguments[0];
+    const smsCall    = smsCalls[0].arguments[0];
 
     assert.ok(voiceCall.sessionKey.startsWith("voice:"), `expected voice: prefix, got ${voiceCall.sessionKey}`);
     assert.ok(smsCall.sessionKey.startsWith("sms:"),   `expected sms: prefix, got ${smsCall.sessionKey}`);
@@ -130,7 +133,7 @@ describe("openclawReply — plugin path", () => {
 
     await openclawReply({ userText: "What time is it?", mode: "voice", _api: api, _coreDeps: deps });
 
-    const { prompt } = deps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
+    const { prompt } = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
     assert.ok(prompt.startsWith("Phone call:"), `expected voice framing, got: ${prompt}`);
     assert.ok(prompt.includes("What time is it?"));
   });
@@ -141,13 +144,14 @@ describe("openclawReply — plugin path", () => {
 
     await openclawReply({ userText: "What time is it?", mode: "sms", _api: api, _coreDeps: deps });
 
-    const { prompt } = deps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
+    const { prompt } = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
     assert.ok(prompt.startsWith("SMS:"), `expected sms framing, got: ${prompt}`);
     assert.ok(prompt.includes("concise"));
   });
 
   it("filters error payloads from runEmbeddedPiAgent result", async () => {
     const deps = makeCoreDeps();
+    // @ts-ignore — reassigning to a minimal stub for this specific test
     deps.runEmbeddedPiAgent = mock.fn(async () => ({
       payloads: [
         { text: "bad", isError: true },
@@ -209,7 +213,7 @@ describe("openclawReply", () => {
     assert.strictEqual(result, "Hello from agent");
     assert.strictEqual(mockRun.mock.calls.length, 1);
     
-    const [cmd, args] = mockRun.mock.calls[0].arguments;
+    const [cmd, args] = /** @type {any[]} */ (mockRun.mock.calls)[0].arguments;
     assert.strictEqual(cmd, "openclaw");
     assert.ok(args.includes("agent"));
     assert.ok(args.includes("--message"));
@@ -231,7 +235,7 @@ describe("openclawReply", () => {
 
     assert.strictEqual(result, "Short reply");
     
-    const [, args] = mockRun.mock.calls[0].arguments;
+    const [, args] = /** @type {any[]} */ (mockRun.mock.calls)[0].arguments;
     const messageIdx = args.indexOf("--message");
     const message = args[messageIdx + 1];
     assert.ok(message.startsWith("SMS:"));
