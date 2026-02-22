@@ -5,6 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Process rules (testing hygiene, documentation hygiene, JSDoc/type conventions) live in
 `.claude/rules/` and are loaded automatically.
 
+## Git Workflow
+
+**All changes go through a pull request — never commit directly to `main`.**
+
+1. Create a feature branch (`git checkout -b <short-description>`)
+2. Make changes, run `/pre-commit` to verify checks pass
+3. Run `/pr` to create or update the PR on GitHub
+4. Merge only after the PR is open (self-merge is fine for solo work, but the PR must exist)
+
+Full process detail in `.claude/rules/git-workflow.md`.
+
 ## Commands
 
 ```bash
