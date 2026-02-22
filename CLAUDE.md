@@ -2,30 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Testing hygiene (always enforce)
-
-Every code change must have corresponding test coverage — do not close a task without it:
-
-- **New behaviour** → add tests covering the happy path and key failure cases
-- **Changed behaviour** → update existing tests to match; a passing test suite that asserts the old behaviour is a bug, not a success
-- **Bug fix** → add a regression test that would have caught the bug
-- **New env var or config field** → add a test in `test/config.test.mjs` or `test/plugin.test.mjs` verifying the default and any non-trivial mapping
-- **New HTTP route** → add integration tests in `test/server.test.mjs`
-
-Always run `npm test` and confirm all 129+ tests pass before committing.
-
-## Documentation hygiene (always enforce)
-
-Whenever you make code changes, check whether any of the following need updating **before closing the task** — do not wait to be asked:
-
-| What changed | Docs to check |
-|---|---|
-| New/removed/renamed env var | `README.md` config table, `.env.example`, `docs/plugin-install.md` config block, `openclaw.plugin.json` configSchema, `lib/config.mjs` `fromPluginConfig()` |
-| New/changed config field (plugin) | `openclaw.plugin.json` configSchema + uiHints, `docs/plugin-install.md`, `lib/config.mjs` `fromPluginConfig()` |
-| Voice/SMS/agent behaviour change | `docs/architecture.md`, `skills/phone/SKILL.md` |
-| New HTTP route or endpoint | `docs/architecture.md` flow diagrams |
-| Module added/removed/renamed | `docs/architecture.md` module layout, `CLAUDE.md` architecture summary |
-| Deployment or startup change | `README.md`, `docs/plugin-install.md` |
+Process rules (testing hygiene, documentation hygiene, JSDoc/type conventions) live in
+`.claude/rules/` and are loaded automatically.
 
 ## Commands
 
