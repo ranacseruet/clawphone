@@ -15,6 +15,7 @@ export default {
 
   register(api) {
     api.registerService({
+      id: "twilio-phone-gateway",
       name: "twilio-phone-gateway",
       start: async (pluginConfig) => {
         const server = await createServer(fromPluginConfig(pluginConfig), api);

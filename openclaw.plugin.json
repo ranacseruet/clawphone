@@ -2,12 +2,12 @@
   "id": "twilio-phone-gateway",
   "configSchema": {
     "type": "object",
-    "required": ["twilioAccountSid", "twilioAuthToken"],
+    "additionalProperties": false,
     "properties": {
       "port":                  { "type": "number",  "default": 8787 },
       "allowFrom":             { "type": "array", "items": { "type": "string" }, "default": [] },
-      "twilioAccountSid":      { "type": "string" },
-      "twilioAuthToken":       { "type": "string" },
+      "twilioAccountSid":      { "type": "string", "default": "" },
+      "twilioAuthToken":       { "type": "string", "default": "" },
       "twilioSmsFrom":         { "type": "string", "default": "" },
       "publicBaseUrl":         { "type": "string", "default": "" },
       "smsFastTimeoutMs":      { "type": "number",  "default": 15000 },
