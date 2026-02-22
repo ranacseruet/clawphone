@@ -44,6 +44,8 @@ pm2 logs clawphone
 pm2 restart clawphone
 ```
 
+`pm2 stop` / `pm2 restart` send SIGTERM. The server stops accepting new connections, waits up to 30 s for any in-flight voice agent calls to complete, then exits — so active calls are not abruptly cut off.
+
 ## OpenClaw plugin mode
 
 See **[docs/plugin-install.md](docs/plugin-install.md)** for full instructions — install, configure, update, and compare plugin vs. standalone deployment.
@@ -75,7 +77,7 @@ See `.env.example` for a fully-annotated reference.
 ## Testing
 
 ```bash
-npm test                        # run all tests (129 tests)
+npm test                        # run all tests (144 tests)
 node --test test/sms.test.mjs   # run a single file
 ```
 
