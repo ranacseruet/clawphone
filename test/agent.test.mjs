@@ -1,3 +1,4 @@
+// @ts-check
 import { describe, it, mock } from "node:test";
 import assert from "node:assert";
 import crypto from "node:crypto";

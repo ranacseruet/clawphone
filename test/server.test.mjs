@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Integration tests for server.mjs.
  *
