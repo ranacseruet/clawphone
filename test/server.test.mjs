@@ -115,10 +115,17 @@ describe("server integration", () => {
 
   // ── Health ──────────────────────────────────────────────────────────────
 
-  it("GET /health → 200 JSON {ok:true}", async () => {
+  it("GET /health → ok with fields", async () => {
     const res = await get("/health", port);
     assert.strictEqual(res.status, 200);
-    assert.deepStrictEqual(JSON.parse(res.body), { ok: true });
+    const body = JSON.parse(res.body);
+    assert.strictEqual(body.ok, true);
+    assert.strictEqual(typeof body.version, "string");
+    assert.ok(body.version.length > 0);
+    assert.strictEqual(typeof body.uptime, "number");
+    assert.ok(body.uptime >= 0);
+    assert.strictEqual(body.activeTurns, 0);
+    assert.strictEqual(body.twilioConfigured, false); // test env: no Twilio creds
   });
 
   // ── 404 ─────────────────────────────────────────────────────────────────

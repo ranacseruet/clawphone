@@ -59,6 +59,12 @@ describe("fromPluginConfig", () => {
     assert.strictEqual(cfg.OPENCLAW_MAX_CONCURRENT, 5);
   });
 
+  it("maps rateLimitMax and rateLimitWindowMs", () => {
+    const cfg = fromPluginConfig({ rateLimitMax: 5, rateLimitWindowMs: 30000 });
+    assert.strictEqual(cfg.RATE_LIMIT_MAX, 5);
+    assert.strictEqual(cfg.RATE_LIMIT_WINDOW_MS, 30000);
+  });
+
   it("applies all defaults for an empty config object", () => {
     const cfg = fromPluginConfig({});
     assert.strictEqual(cfg.PORT, 8787);
@@ -71,6 +77,8 @@ describe("fromPluginConfig", () => {
     assert.strictEqual(cfg.OPENCLAW_PHONE_SESSION_ID, "phone");
     assert.strictEqual(cfg.OPENCLAW_AGENT_ID, "phone");
     assert.strictEqual(cfg.OPENCLAW_MAX_CONCURRENT, 10);
+    assert.strictEqual(cfg.RATE_LIMIT_MAX, 20);
+    assert.strictEqual(cfg.RATE_LIMIT_WINDOW_MS, 60000);
   });
 
   it("includes static constants", () => {

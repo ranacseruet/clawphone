@@ -35,7 +35,7 @@ openclaw gateway stop && openclaw gateway install
 
 # Verify
 openclaw plugins list                  # should show "loaded"
-curl http://localhost:8787/health      # → {"ok":true}
+curl http://localhost:8787/health      # → {"ok":true,"version":"...","uptime":42,"activeTurns":0,"twilioConfigured":true}
 ```
 
 For local development, replace `openclaw plugins install .` with:
@@ -125,6 +125,10 @@ openclaw config set plugins.entries.clawphone.config.port 8787
 # Optional — OpenClaw session and agent IDs (defaults match the "phone" agent)
 openclaw config set plugins.entries.clawphone.config.openclawSessionId '"phone"'
 openclaw config set plugins.entries.clawphone.config.openclawAgentId '"phone"'
+
+# Optional — rate limiting (per-number sliding window; 0 disables)
+openclaw config set plugins.entries.clawphone.config.rateLimitMax 20
+openclaw config set plugins.entries.clawphone.config.rateLimitWindowMs 60000
 ```
 
 ---
@@ -154,7 +158,7 @@ You can also hit the health endpoint:
 
 ```bash
 curl http://localhost:8787/health
-# → {"ok":true}
+# → {"ok":true,"version":"1.0.0","uptime":42,"activeTurns":0,"twilioConfigured":true}
 ```
 
 ---

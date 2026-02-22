@@ -68,6 +68,8 @@ All configuration is via environment variables (loaded from `.env` by dotenv). V
 | `DISCORD_LOG_CHANNEL_ID` | *(disabled)* | Discord channel for call/SMS logging; unset to disable |
 | `SMS_MAX_CHARS` | `280` | Max characters in an SMS reply |
 | `SMS_FAST_TIMEOUT_MS` | `15000` | Fast-path timeout (ms) before falling back to async SMS |
+| `RATE_LIMIT_MAX` | `20` | Max requests per phone number per window (0 = disabled) |
+| `RATE_LIMIT_WINDOW_MS` | `60000` | Rate limit window in ms (default: 1 minute) |
 | `CALLER_NAME` | *(none)* | Optional name shown in Discord logs and agent prompt (e.g. `Alice`) |
 | `AGENT_NAME` | *(none)* | Optional agent display name shown in Discord logs (e.g. `Bot`) |
 | `GREETING_TEXT` | `You are connected. Say something after the beep.` | Voice greeting spoken when a call connects |

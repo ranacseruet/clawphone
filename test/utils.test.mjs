@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { EventEmitter } from "node:events";
 
-import { parseForm, toSayableText, run, readBody, createSemaphore } from "../lib/utils.mjs";
+import { parseForm, toSayableText, run, readBody, createSemaphore, createRateLimiter } from "../lib/utils.mjs";
 
 // ─── Mock request factory ───────────────────────────────────────────────────
 
@@ -171,6 +171,45 @@ describe("createSemaphore", () => {
     const i2e = log.indexOf("end-2");
     const sequential = (i1e < i2s) || (i2e < i1s);
     assert.ok(sequential, `log=${JSON.stringify(log)} should show sequential execution`);
+  });
+});
+
+describe("createRateLimiter", () => {
+  it("allows requests up to max", () => {
+    const rl = createRateLimiter(3, 60_000);
+    assert.strictEqual(rl.check("key1"), true);
+    assert.strictEqual(rl.check("key1"), true);
+    assert.strictEqual(rl.check("key1"), true);
+  });
+
+  it("blocks the (max+1)th request", () => {
+    const rl = createRateLimiter(2, 60_000);
+    assert.strictEqual(rl.check("key2"), true);
+    assert.strictEqual(rl.check("key2"), true);
+    assert.strictEqual(rl.check("key2"), false);
+  });
+
+  it("tracks different keys independently", () => {
+    const rl = createRateLimiter(1, 60_000);
+    assert.strictEqual(rl.check("aaa"), true);
+    assert.strictEqual(rl.check("bbb"), true);
+    assert.strictEqual(rl.check("aaa"), false);
+    assert.strictEqual(rl.check("bbb"), false);
+  });
+
+  it("max <= 0 disables rate limiting (always returns true)", () => {
+    const rl = createRateLimiter(0, 60_000);
+    for (let i = 0; i < 100; i++) {
+      assert.strictEqual(rl.check("flood"), true);
+    }
+  });
+
+  it("allows after window expires", async () => {
+    const rl = createRateLimiter(1, 50); // 50 ms window
+    assert.strictEqual(rl.check("key3"), true);
+    assert.strictEqual(rl.check("key3"), false);
+    await new Promise((r) => setTimeout(r, 60)); // wait past window
+    assert.strictEqual(rl.check("key3"), true);
   });
 });
 
