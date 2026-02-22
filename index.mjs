@@ -17,7 +17,7 @@ export default {
     api.registerService({
       name: "twilio-phone-gateway",
       start: async (pluginConfig) => {
-        const server = await createServer(fromPluginConfig(pluginConfig));
+        const server = await createServer(fromPluginConfig(pluginConfig), api);
         return {
           stop: () => new Promise((resolve, reject) =>
             server.close((err) => err ? reject(err) : resolve())

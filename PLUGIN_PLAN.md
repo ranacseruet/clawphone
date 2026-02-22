@@ -294,7 +294,7 @@ PM2 continues working identically via `pm2 start ecosystem.config.cjs`.
 
 ---
 
-## Phase 2 — Native Agent Invocation
+## Phase 2 — Native Agent Invocation ✅ COMPLETE
 
 **Outcome:** `lib/agent.mjs` invokes the OpenClaw agent in-process (no subprocess)
 when running as a plugin. Standalone/PM2 path falls back to the CLI subprocess.
