@@ -24,6 +24,8 @@ pm2 logs twilio-phone-gateway
 
 This is a Node.js HTTP server (ES Modules, no TypeScript, no framework) that bridges Twilio voice/SMS webhooks with the OpenClaw agent CLI. It uses only the built-in `http` module plus `twilio` and `dotenv` (no `ws` or other networking deps).
 
+It can run as a **standalone server** (via `node server.mjs` / PM2) or as an **OpenClaw plugin** (`openclaw plugins install`). The HTTP server factory lives in `lib/http-server.mjs`; `server.mjs` is the standalone entry point and `index.mjs` is the plugin entry point.
+
 ### Voice Call Flow
 
 Twilio's webhook timeout (~15s) makes synchronous agent calls impossible for voice. The gateway uses a **polling loop**:
@@ -48,7 +50,7 @@ The `voice-state.mjs` module tracks pending turns using two Maps (`pending` keye
 
 ## Configuration
 
-All configuration is via environment variables, centralized in `lib/config.mjs`. See `.env.example` for a full annotated reference.
+All configuration is via environment variables (standalone path), centralized in `lib/config.mjs`. See `.env.example` for a full annotated reference. The plugin path uses `fromPluginConfig(cfg)` (also in `lib/config.mjs`) which maps the camelCase OpenClaw plugin config to the same internal shape.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -78,7 +80,7 @@ All configuration is via environment variables, centralized in `lib/config.mjs`.
 
 ## Testing
 
-Tests use the Node.js built-in `node:test` runner (~113 tests across 8 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
+Tests use the Node.js built-in `node:test` runner (~120 tests across 9 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
 - Setting `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` to `""` → `twilioClient` stays `null`, no real SMS; also causes `checkSignature` to skip validation
 - Setting `DISCORD_LOG_CHANNEL_ID` to `""` → `discordLog()` returns early, no Discord messages
 - Injecting a fake `openclaw` stub onto `PATH` → `openclawReply()` never reaches the real binary or agent

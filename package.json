@@ -1,7 +1,12 @@
 {
-  "name": "twilio-phone-gateway",
-  "private": true,
+  "name": "@openclaw/twilio-phone-gateway",
+  "version": "1.0.0",
+  "description": "Twilio voice and SMS gateway plugin for OpenClaw",
   "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
   "scripts": {
     "test": "node --test"
   },

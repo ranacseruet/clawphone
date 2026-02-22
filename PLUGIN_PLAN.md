@@ -63,11 +63,19 @@ break this. The standalone path is the fallback for both phases.
 
 ---
 
-## Phase 1 — Plugin Packaging (no agent API changes)
+## Phase 1 — Plugin Packaging (no agent API changes) ✅ COMPLETE (commit: see git log)
 
 **Outcome:** `openclaw plugins install ./twilio-phone-gateway` works. PM2 unchanged.
 Agent invocation still goes through the `openclaw` CLI subprocess — no change to
 `lib/agent.mjs`.
+
+**Implementation note:** The plan described refactoring `server.mjs` into the factory.
+Instead, the factory was extracted to `lib/http-server.mjs` to avoid a module-scope
+side-effect conflict: `test/server.test.mjs` does `await import("../server.mjs")` and
+relies on the server auto-starting as a side effect. `server.mjs` is now a thin wrapper
+that auto-starts (unchanged from the test's perspective); `index.mjs` imports
+`createServer` from `lib/http-server.mjs` directly, so it never triggers the auto-start.
+Phase 2 should update `lib/http-server.mjs` (not `server.mjs`) when threading `api`.
 
 ### 1.1 — `package.json`
 

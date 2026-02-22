@@ -1,0 +1,27 @@
+{
+  "id": "twilio-phone-gateway",
+  "configSchema": {
+    "type": "object",
+    "required": ["twilioAccountSid", "twilioAuthToken"],
+    "properties": {
+      "port":                  { "type": "number",  "default": 8787 },
+      "allowFrom":             { "type": "array", "items": { "type": "string" }, "default": [] },
+      "twilioAccountSid":      { "type": "string" },
+      "twilioAuthToken":       { "type": "string" },
+      "twilioSmsFrom":         { "type": "string", "default": "" },
+      "publicBaseUrl":         { "type": "string", "default": "" },
+      "smsFastTimeoutMs":      { "type": "number",  "default": 15000 },
+      "smsMaxChars":           { "type": "number",  "default": 280 },
+      "discordLogChannelId":   { "type": "string",  "default": "" },
+      "openclawSessionId":     { "type": "string",  "default": "phone-rana" },
+      "openclawAgentId":       { "type": "string",  "default": "phone" },
+      "openclawMaxConcurrent": { "type": "number",  "default": 10 }
+    }
+  },
+  "uiHints": {
+    "twilioAccountSid":  { "label": "Twilio Account SID" },
+    "twilioAuthToken":   { "label": "Twilio Auth Token", "sensitive": true },
+    "publicBaseUrl":     { "label": "Public Webhook Base URL", "placeholder": "https://twilio.i2dev.com" },
+    "allowFrom":         { "label": "Allowed Phone Numbers (E.164)", "placeholder": "+15551234567" }
+  }
+}
