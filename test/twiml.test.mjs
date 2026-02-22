@@ -26,7 +26,8 @@ describe("TwiML builders", () => {
       const result = say("Hello <world> & \"friends\"");
       assert.ok(result.includes("&lt;world&gt;"));
       assert.ok(result.includes("&amp;"));
-      assert.ok(result.includes("&quot;friends&quot;"));
+      // " does not need escaping in XML element content (only in attributes)
+      assert.ok(result.includes('"friends"'));
     });
   });
 
@@ -77,7 +78,8 @@ describe("TwiML builders", () => {
       assert.ok(result.includes('<Gather input="speech"'));
       assert.ok(result.includes(`timeout="${GATHER_FOLLOWUP_TIMEOUT_SECONDS}"`));
       assert.ok(result.includes("Say your next message"));
-      assert.ok(result.includes("I didn&apos;t catch anything"));
+      // ' does not need escaping in XML element content (only in attributes)
+      assert.ok(result.includes("I didn't catch anything"));
       assert.ok(result.includes('<Redirect method="POST">/speech</Redirect>'));
     });
 

@@ -1,14 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { handleIncomingSms, twimlMessage, xmlEscape, normalizeSmsText } from "../lib/sms.mjs";
-
-test("xmlEscape escapes XML special chars", () => {
-  assert.equal(
-    xmlEscape(`Tom & Rana <3 "hi" 'ok'`),
-    "Tom &amp; Rana &lt;3 &quot;hi&quot; &apos;ok&apos;"
-  );
-});
+import { handleIncomingSms, twimlMessage, normalizeSmsText } from "../lib/sms.mjs";
 
 test("twimlMessage wraps message in TwiML", () => {
   const xml = twimlMessage("hello");
@@ -217,48 +210,9 @@ test("normalizeSmsText handles empty and null input", () => {
   assert.equal(normalizeSmsText(undefined), "");
 });
 
-test("xmlEscape handles empty and null input", () => {
-  assert.equal(xmlEscape(""), "");
-  // null becomes "null" via String(null)
-  assert.equal(xmlEscape(null), "null");
-  // undefined triggers default param s="", so becomes ""
-  assert.equal(xmlEscape(undefined), "");
-  assert.equal(xmlEscape(), "");
-});
-
 test("twimlMessage uses default 'Okay' for empty text", () => {
   const xml = twimlMessage("");
   assert.match(xml, /<Message>Okay<\/Message>/);
-});
-
-// ─── xmlEscape: individual special chars ─────────────────────────────────────
-
-test("xmlEscape escapes & individually", () => {
-  assert.equal(xmlEscape("&"), "&amp;");
-});
-
-test("xmlEscape escapes < individually", () => {
-  assert.equal(xmlEscape("<"), "&lt;");
-});
-
-test("xmlEscape escapes > individually", () => {
-  assert.equal(xmlEscape(">"), "&gt;");
-});
-
-test('xmlEscape escapes " individually', () => {
-  assert.equal(xmlEscape('"'), "&quot;");
-});
-
-test("xmlEscape escapes ' individually", () => {
-  assert.equal(xmlEscape("'"), "&apos;");
-});
-
-test("xmlEscape escapes all 5 special chars in one string", () => {
-  assert.equal(xmlEscape(`&<>"'`), "&amp;&lt;&gt;&quot;&apos;");
-});
-
-test("xmlEscape double-escapes already-escaped input (not idempotent by design)", () => {
-  assert.equal(xmlEscape("&amp;"), "&amp;amp;");
 });
 
 // ─── Phone normalization edge cases ──────────────────────────────────────────

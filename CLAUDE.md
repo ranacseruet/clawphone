@@ -55,6 +55,7 @@ All configuration is via environment variables, centralized in `lib/config.mjs`.
 | `PORT` | `8787` | Server port |
 | `ALLOW_FROM` | *(none)* | Comma-separated E.164 phone allowlist; blank = allow all |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | — | Twilio credentials (required for async SMS) |
+| `PUBLIC_BASE_URL` | *(none)* | Public URL of this server (e.g. `https://twilio.i2dev.com`); when set alongside `TWILIO_AUTH_TOKEN`, all webhook POSTs are signature-verified (403 on failure) |
 | `TWILIO_SMS_FROM` | *(inbound `To`)* | Override sender number for outbound async SMS |
 | `OPENCLAW_PHONE_SESSION_ID` | `phone-rana` | OpenClaw session ID |
 | `OPENCLAW_AGENT_ID` | `phone` | OpenClaw agent ID |
@@ -72,12 +73,12 @@ All configuration is via environment variables, centralized in `lib/config.mjs`.
 
 - **State is in-memory**: Voice call state resets on server restart; there is no database.
 - **No framework**: Raw `http.createServer` with manual routing; all request bodies are URL-encoded forms parsed by `lib/utils.mjs:parseForm()`.
-- **TwiML building**: `lib/twiml.mjs` builds XML strings directly (no SDK TwiML builder); all user-visible text must be XML-escaped.
+- **TwiML building**: `lib/twiml.mjs` uses `twilio.twiml.VoiceResponse`; `lib/sms.mjs` uses `twilio.twiml.MessagingResponse`. The SDK handles XML escaping internally.
 - **SMS text sanitization**: Unicode punctuation (curly quotes, em-dashes, etc.) is normalized to ASCII before sending, and text is truncated at `SMS_MAX_CHARS` chars.
 
 ## Testing
 
-Tests use the Node.js built-in `node:test` runner (~118 tests across 8 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
-- Setting `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` to `""` → `twilioClient` stays `null`, no real SMS
+Tests use the Node.js built-in `node:test` runner (~113 tests across 8 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
+- Setting `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` to `""` → `twilioClient` stays `null`, no real SMS; also causes `checkSignature` to skip validation
 - Setting `DISCORD_LOG_CHANNEL_ID` to `""` → `discordLog()` returns early, no Discord messages
 - Injecting a fake `openclaw` stub onto `PATH` → `openclawReply()` never reaches the real binary or agent

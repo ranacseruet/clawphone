@@ -1,8 +1,48 @@
 import { describe, it, mock } from "node:test";
 import assert from "node:assert";
+import crypto from "node:crypto";
 
 // We can't easily mock the Twilio SDK import, so we test the interface
-import { createTwilioClient } from "../lib/twilio.mjs";
+import { createTwilioClient, validateWebhookSignature } from "../lib/twilio.mjs";
+
+// Compute the expected Twilio HMAC-SHA1 signature for a given token/url/params combo.
+function computeTwilioSignature(authToken, url, params) {
+  const sorted = Object.keys(params).sort().map(k => `${k}${params[k]}`).join("");
+  return crypto.createHmac("sha1", authToken).update(url + sorted).digest("base64");
+}
+
+describe("validateWebhookSignature", () => {
+  const authToken = "test-auth-token-abc123";
+  const url = "https://twilio.i2dev.com/voice";
+  const params = { CallSid: "CA123", From: "+15551234567", To: "+18005550000" };
+
+  it("returns true for a correctly signed request", () => {
+    const sig = computeTwilioSignature(authToken, url, params);
+    assert.strictEqual(validateWebhookSignature({ authToken, signature: sig, url, params }), true);
+  });
+
+  it("returns false for a bad signature", () => {
+    assert.strictEqual(
+      validateWebhookSignature({ authToken, signature: "bad-signature-value", url, params }),
+      false
+    );
+  });
+
+  it("returns false when signature is empty string", () => {
+    assert.strictEqual(
+      validateWebhookSignature({ authToken, signature: "", url, params }),
+      false
+    );
+  });
+
+  it("returns false when params differ from signed params", () => {
+    const sig = computeTwilioSignature(authToken, url, params);
+    assert.strictEqual(
+      validateWebhookSignature({ authToken, signature: sig, url, params: { ...params, From: "+19999999999" } }),
+      false
+    );
+  });
+});
 
 describe("createTwilioClient", () => {
   it("throws if accountSid is missing", () => {

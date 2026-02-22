@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 
 // Local modules
 import { handleIncomingSms } from "./lib/sms.mjs";
-import { createTwilioClient } from "./lib/twilio.mjs";
+import { createTwilioClient, validateWebhookSignature } from "./lib/twilio.mjs";
 import { parseForm, toSayableText, readBody } from "./lib/utils.mjs";
 import { openclawReply, discordLog } from "./lib/agent.mjs";
 import {
@@ -22,11 +22,23 @@ import {
   TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN,
   TWILIO_SMS_FROM,
+  PUBLIC_BASE_URL,
   SMS_MAX_CHARS,
   SMS_FAST_TIMEOUT_MS,
   MAX_SAYABLE_LENGTH,
   getRandomThinkingPhrase,
 } from "./lib/config.mjs";
+
+// ─────────────────────────────────────────────────────────────
+// Webhook signature validation
+// ─────────────────────────────────────────────────────────────
+
+function checkSignature(req, parsedBody) {
+  if (!TWILIO_AUTH_TOKEN || !PUBLIC_BASE_URL) return true; // skip when unconfigured (dev/test)
+  const sig = req.headers["x-twilio-signature"] || "";
+  const url = `${PUBLIC_BASE_URL}${req.url}`;
+  return validateWebhookSignature({ authToken: TWILIO_AUTH_TOKEN, signature: sig, url, params: parsedBody });
+}
 
 // Initialize Twilio client (for async SMS follow-ups)
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN)
@@ -56,6 +68,10 @@ const server = http.createServer(async (req, res) => {
       res.end(err.message); return;
     }
     const form = parseForm(body);
+    if (!checkSignature(req, form)) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("Forbidden"); return;
+    }
     const from = form.From?.trim();
     // Normalize: add + if missing
     const fromNormalized = from?.startsWith("+") ? from : `+${from}`;
@@ -84,6 +100,10 @@ const server = http.createServer(async (req, res) => {
       res.end(err.message); return;
     }
     const form = parseForm(body);
+    if (!checkSignature(req, form)) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("Forbidden"); return;
+    }
     const from = form.From;
     const callSid = form.CallSid || "nocallsid";
 
@@ -141,6 +161,17 @@ const server = http.createServer(async (req, res) => {
 
   // Speech wait webhook - polling for reply
   if (req.method === "POST" && u.pathname === "/speech-wait") {
+    let waitBody;
+    try { waitBody = await readBody(req); }
+    catch (err) {
+      res.writeHead(err.statusCode || 500, { "content-type": "text/plain" });
+      res.end(err.message); return;
+    }
+    const waitForm = parseForm(waitBody);
+    if (!checkSignature(req, waitForm)) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("Forbidden"); return;
+    }
     const key = u.searchParams.get("key") || "";
     const item = getPendingTurn(key);
 
@@ -187,6 +218,10 @@ const server = http.createServer(async (req, res) => {
     }
     const start = Date.now();
     const form = parseForm(body);
+    if (!checkSignature(req, form)) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("Forbidden"); return;
+    }
 
     const { twiml: twimlResponse, didAck, startAsync } = await handleIncomingSms({
       form,
