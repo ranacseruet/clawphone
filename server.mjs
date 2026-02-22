@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Standalone entry point — used by `node server.mjs` and PM2.
  *

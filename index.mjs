@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * OpenClaw plugin entry point.
  *
