@@ -23,9 +23,27 @@ pm2 logs twilio-phone-gateway
 OpenClaw plugin mode:
 ```bash
 openclaw plugins install .          # install from project directory
-openclaw plugins enable twilio-phone-gateway
+openclaw config set plugins.allow '["twilio-phone-gateway"]'   # trust the plugin
+openclaw plugins list               # verify status (should show "loaded")
+
+# Set plugin config (mirrors .env values):
+openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAccountSid '"AC..."'
+openclaw config set plugins.entries.twilio-phone-gateway.config.twilioAuthToken '"..."'
+openclaw config set plugins.entries.twilio-phone-gateway.config.twilioSmsFrom '"+1..."'
+openclaw config set plugins.entries.twilio-phone-gateway.config.publicBaseUrl '"https://twilio.i2dev.com"'
+openclaw config set plugins.entries.twilio-phone-gateway.config.allowFrom '["+1...","+1..."]'
+openclaw config set plugins.entries.twilio-phone-gateway.config.port 8787
+openclaw config set plugins.entries.twilio-phone-gateway.config.discordLogChannelId '"..."'
+
 openclaw plugins disable twilio-phone-gateway
-openclaw plugins list               # verify status
+openclaw gateway stop && openclaw gateway install  # restart gateway to reload plugin
+```
+
+**Plugin update after code changes** (path-based installs don't auto-update):
+```bash
+cp lib/agent.mjs ~/.openclaw/extensions/twilio-phone-gateway/lib/agent.mjs
+# ... copy any changed lib/ files, then restart gateway
+openclaw gateway stop && openclaw gateway install
 ```
 
 ## Architecture
@@ -53,7 +71,7 @@ The `voice-state.mjs` module tracks pending turns using two Maps (`pending` keye
 
 `lib/agent.mjs` has a **dual-path** design:
 
-- **Plugin path** (when `api` is injected via `index.mjs`): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process. Discord logging via `api.runtime.channel.discord.sendMessageDiscord()`.
+- **Plugin path** (when `api` is injected via `index.mjs`): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process. Discord logging via `api.runtime.channel.discord.sendMessageDiscord()`. The dist path is resolved via `process.argv[1]` (the openclaw host entry point) since the plugin's `node_modules` does not contain `openclaw`.
 - **Standalone/PM2 path** (when `api` is `null`): spawns the `openclaw` CLI as a child process (`openclaw agent ...` / `openclaw message send`).
 
 Both paths share:
