@@ -7,7 +7,10 @@
  *  - PORT=0 → OS assigns a free port; we read it back via server.address().port.
  *  - TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN cleared → twilioClient stays null,
  *    so no real Twilio SDK calls can be made even in the async SMS path.
+ *  - DISCORD_LOG_CHANNEL_ID cleared → discordLog() returns immediately (no-op).
  *  - ALLOW_FROM fixed to a known test number.
+ *  - A fake `openclaw` stub is injected onto PATH so openclawReply() never
+ *    reaches the real agent or Discord, preventing notifications during tests.
  *  - voice-state.mjs is imported statically (no config dependency) so we can
  *    pre-populate pending turns for /speech-wait tests; it shares the same module
  *    instance as the one server.mjs imported.
@@ -16,6 +19,9 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import http from "node:http";
+import { mkdtempSync, writeFileSync, rmSync, chmodSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   createPendingTurn,
@@ -23,13 +29,25 @@ import {
   deleteTurn,
 } from "../lib/voice-state.mjs";
 
+// ── Fake openclaw stub ───────────────────────────────────────────────────────
+// Prevent real openclaw (if on PATH) from spawning and touching Discord/agents.
+const fakeBinDir = mkdtempSync(join(tmpdir(), "twilio-gw-test-"));
+const fakeOpenclawPath = join(fakeBinDir, "openclaw");
+writeFileSync(
+  fakeOpenclawPath,
+  '#!/bin/sh\necho \'{"result":{"payloads":[{"text":"[test stub]"}]}}\'\n',
+  "utf8"
+);
+chmodSync(fakeOpenclawPath, 0o755);
+process.env.PATH = `${fakeBinDir}:${process.env.PATH}`;
+
 // ── Configure env before server / config loads ───────────────────────────────
 process.env.PORT = "0"; // OS picks free port
 process.env.ALLOW_FROM = "+15550001111";
 process.env.TWILIO_ACCOUNT_SID = ""; // keeps twilioClient = null
 process.env.TWILIO_AUTH_TOKEN = "";
+process.env.DISCORD_LOG_CHANNEL_ID = ""; // discordLog() returns early (no-op)
 // Short fast-path timeout so /sms tests complete quickly
-// (openclaw isn't present in test env, so it fails fast anyway)
 process.env.SMS_FAST_TIMEOUT_MS = "200";
 
 // Dynamic import: config.mjs is evaluated HERE with the env vars above already set
@@ -91,6 +109,7 @@ describe("server integration", () => {
     // settle so their error-catch branches register in the coverage report.
     await new Promise((r) => setTimeout(r, 200));
     await new Promise((resolve) => server.close(resolve));
+    rmSync(fakeBinDir, { recursive: true, force: true });
   });
 
   // ── Health ──────────────────────────────────────────────────────────────
