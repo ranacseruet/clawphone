@@ -7,6 +7,11 @@
   "exports": {
     ".": "./index.mjs"
   },
+  "openclaw": {
+    "extensions": [
+      "./index.mjs"
+    ]
+  },
   "scripts": {
     "test": "node --test"
   },
