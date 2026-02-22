@@ -89,6 +89,8 @@ Logs a message to a Discord channel (fire-and-forget). No-op when `DISCORD_LOG_C
 
 Inbound `From` numbers are normalised (leading `+` added if missing, whitespace trimmed) before checking against `ALLOW_FROM`. Unauthorised callers/senders receive a hangup or "Unauthorized" TwiML response. Leave `ALLOW_FROM` blank to allow all numbers (not recommended in production).
 
+Inbound `/voice` and `/sms` requests are also subject to a per-number sliding-window rate limit (`RATE_LIMIT_MAX` requests per `RATE_LIMIT_WINDOW_MS` ms). Rate-limited requests receive a rejection TwiML response (HTTP 200). Set `RATE_LIMIT_MAX=0` to disable.
+
 ---
 
 ## Webhook signature validation
@@ -129,7 +131,7 @@ skills/phone/SKILL.md   Agent skill definition (prompt framing docs)
 
 ## Testing
 
-Tests use Node's built-in `node:test` runner (~144 tests across 10 files). No external test framework.
+Tests use Node's built-in `node:test` runner (~150 tests across 10 files). No external test framework.
 
 The integration test suite (`test/server.test.mjs`) isolates against all external services:
 

@@ -9,6 +9,8 @@ import {
   TWILIO_VOICE,
   SMS_MAX_CHARS,
   MAX_SAYABLE_LENGTH,
+  RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW_MS,
 } from "../lib/config.mjs";
 
 describe("config", () => {
@@ -31,6 +33,16 @@ describe("config", () => {
     it("has MAX_SAYABLE_LENGTH", () => {
       assert.strictEqual(typeof MAX_SAYABLE_LENGTH, "number");
       assert.ok(MAX_SAYABLE_LENGTH > 0);
+    });
+
+    it("has RATE_LIMIT_MAX as a non-negative number", () => {
+      assert.strictEqual(typeof RATE_LIMIT_MAX, "number");
+      assert.ok(RATE_LIMIT_MAX >= 0);
+    });
+
+    it("has RATE_LIMIT_WINDOW_MS as a positive number", () => {
+      assert.strictEqual(typeof RATE_LIMIT_WINDOW_MS, "number");
+      assert.ok(RATE_LIMIT_WINDOW_MS > 0);
     });
   });
 

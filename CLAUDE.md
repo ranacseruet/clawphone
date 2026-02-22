@@ -68,7 +68,7 @@ All config centralised in `lib/config.mjs` (standalone) and `fromPluginConfig()`
 
 ## Testing
 
-Tests use Node's built-in `node:test` (~129 tests, 9 files). The integration test (`test/server.test.mjs`) isolates all external calls:
+Tests use Node's built-in `node:test` (~150 tests, 10 files). The integration test (`test/server.test.mjs`) isolates all external calls:
 
 - `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` set to `""` → no real SMS, signature validation skipped
 - `DISCORD_LOG_CHANNEL_ID` set to `""` → `discordLog()` no-ops
