@@ -8,7 +8,13 @@ Twilio phone gateway — both live voice calls and SMS messages.
 Incoming speech from the caller is sent to the agent as:
 
 ```
-Phone call (Rana): <transcribed speech>
+Phone call: <transcribed speech>
+```
+
+Or, if `CALLER_NAME` is configured (e.g. `CALLER_NAME=Alice`):
+
+```
+Phone call (Alice): <transcribed speech>
 ```
 
 The agent should reply conversationally, keeping answers concise enough to be
@@ -20,11 +26,18 @@ stripped before the reply is sent to Twilio's TTS engine.
 Incoming SMS messages are sent to the agent as:
 
 ```
-SMS (Rana): <message text>
+SMS: <message text>
 
 Reply via SMS. Keep it concise: <= 280 characters. Use plain ASCII only
 (no emojis, no curly quotes, no em-dashes). No markdown. If too long,
 answer with the single most important sentence.
+```
+
+Or, if `CALLER_NAME` is configured:
+
+```
+SMS (Alice): <message text>
+...
 ```
 
 The agent must stay within the character limit and use only ASCII-safe
@@ -34,5 +47,5 @@ limit on Twilio).
 ## Session
 
 Both voice and SMS share the session ID configured in `openclawSessionId`
-(default: `phone-rana`) and the agent ID configured in `openclawAgentId`
+(default: `phone`) and the agent ID configured in `openclawAgentId`
 (default: `phone`), so conversation history persists across channels.

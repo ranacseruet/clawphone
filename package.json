@@ -7,6 +7,29 @@
   "exports": {
     ".": "./index.mjs"
   },
+  "author": "ranacseruet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ranacseruet/twilio-phone-gateway.git"
+  },
+  "homepage": "https://github.com/ranacseruet/twilio-phone-gateway#readme",
+  "bugs": {
+    "url": "https://github.com/ranacseruet/twilio-phone-gateway/issues"
+  },
+  "keywords": [
+    "twilio",
+    "voice",
+    "sms",
+    "openclaw",
+    "plugin",
+    "gateway",
+    "agent",
+    "webhook"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "openclaw": {
     "extensions": [
       "./index.mjs"

@@ -130,7 +130,7 @@ describe("openclawReply — plugin path", () => {
     await openclawReply({ userText: "What time is it?", mode: "voice", _api: api, _coreDeps: deps });
 
     const { prompt } = deps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
-    assert.ok(prompt.includes("Phone call (Rana)"), `expected voice framing, got: ${prompt}`);
+    assert.ok(prompt.startsWith("Phone call:"), `expected voice framing, got: ${prompt}`);
     assert.ok(prompt.includes("What time is it?"));
   });
 
@@ -141,7 +141,7 @@ describe("openclawReply — plugin path", () => {
     await openclawReply({ userText: "What time is it?", mode: "sms", _api: api, _coreDeps: deps });
 
     const { prompt } = deps.runEmbeddedPiAgent.mock.calls[0].arguments[0];
-    assert.ok(prompt.includes("SMS (Rana)"), `expected sms framing, got: ${prompt}`);
+    assert.ok(prompt.startsWith("SMS:"), `expected sms framing, got: ${prompt}`);
     assert.ok(prompt.includes("concise"));
   });
 
@@ -216,7 +216,7 @@ describe("openclawReply", () => {
     // Find the message arg
     const messageIdx = args.indexOf("--message");
     const message = args[messageIdx + 1];
-    assert.ok(message.includes("Phone call (Rana)"));
+    assert.ok(message.startsWith("Phone call:"));
     assert.ok(message.includes("Hi there"));
   });
 
@@ -233,7 +233,7 @@ describe("openclawReply", () => {
     const [, args] = mockRun.mock.calls[0].arguments;
     const messageIdx = args.indexOf("--message");
     const message = args[messageIdx + 1];
-    assert.ok(message.includes("SMS (Rana)"));
+    assert.ok(message.startsWith("SMS:"));
     assert.ok(message.includes("concise"));
   });
 

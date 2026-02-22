@@ -69,12 +69,15 @@ All configuration is via environment variables (loaded from `.env` by dotenv). V
 | `TWILIO_ACCOUNT_SID` | — | Twilio account SID (required for async SMS) |
 | `TWILIO_AUTH_TOKEN` | — | Twilio auth token (required for async SMS) |
 | `TWILIO_SMS_FROM` | *(inbound `To`)* | Override sender number for outbound async SMS |
-| `OPENCLAW_PHONE_SESSION_ID` | `phone-rana` | OpenClaw session ID for voice/SMS calls |
+| `OPENCLAW_PHONE_SESSION_ID` | `phone` | OpenClaw session ID for voice/SMS calls |
 | `OPENCLAW_AGENT_ID` | `phone` | OpenClaw agent ID |
 | `OPENCLAW_MAX_CONCURRENT` | `10` | Max simultaneous agent invocations |
 | `DISCORD_LOG_CHANNEL_ID` | *(disabled)* | Discord channel for call/SMS logging; unset to disable |
 | `SMS_MAX_CHARS` | `280` | Max characters in an SMS reply |
 | `SMS_FAST_TIMEOUT_MS` | `15000` | Fast-path timeout (ms) before falling back to async SMS |
+| `CALLER_NAME` | *(none)* | Optional name shown in Discord logs and agent prompt (e.g. `Alice`) |
+| `AGENT_NAME` | *(none)* | Optional agent display name shown in Discord logs (e.g. `Bot`) |
+| `GREETING_TEXT` | `You are connected. Say something after the beep.` | Voice greeting spoken when a call connects |
 
 ## Architecture
 
@@ -99,9 +102,14 @@ Twilio → POST /speech-wait  → if reply ready: deliver + new <Gather>
 
 ### Agent integration
 
-`lib/agent.mjs` spawns the `openclaw` CLI as a child process:
+`lib/agent.mjs` has a dual-path design:
 
-- **`openclawReply({ userText, mode })`** — `mode` is `"sms"` or `"voice"`. SMS mode enforces ASCII-only, ≤ `SMS_MAX_CHARS` chars, no markdown in the system prompt.
+- **Plugin path** (when running as an OpenClaw plugin): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process.
+- **Standalone / PM2 path**: spawns `openclaw agent` as a child process.
+
+Both paths share the same interface:
+
+- **`openclawReply({ userText, mode })`** — `mode` is `"sms"` or `"voice"`. SMS mode enforces ASCII-only, ≤ `SMS_MAX_CHARS` chars, no markdown in the prompt.
 - **`discordLog({ text })`** — fire-and-forget; only active when `DISCORD_LOG_CHANNEL_ID` is set.
 - Agent timeout: 120 s; max concurrency controlled by a semaphore (`OPENCLAW_MAX_CONCURRENT`).
 
@@ -116,22 +124,25 @@ Inbound `From` numbers are normalised (leading `+` added if missing, whitespace 
 ## Module layout
 
 ```
-server.mjs              Entry point; HTTP routing
+server.mjs              Standalone entry point
+index.mjs               OpenClaw plugin entry point
 lib/
   config.mjs            All env vars and constants
-  agent.mjs             openclaw CLI integration (openclawReply, discordLog)
+  http-server.mjs       HTTP server factory (shared by both entry points)
+  agent.mjs             Agent integration (openclawReply, discordLog)
   sms.mjs               SMS handler (fast/slow path, text normalisation)
-  twiml.mjs             TwiML XML builders (no SDK TwiML builder)
-  twilio.mjs            Twilio SDK wrapper (sendSms)
+  twiml.mjs             TwiML XML builders
+  twilio.mjs            Twilio SDK wrapper (sendSms, validateWebhookSignature)
   utils.mjs             parseForm, toSayableText, readBody, semaphore, run
   voice-state.mjs       In-memory pending-turn state for voice polling loop
-ecosystem.config.cjs    PM2 process config
+ecosystem.config.cjs    PM2 process config (secrets loaded from .env)
+openclaw.plugin.json    OpenClaw plugin manifest and config schema
 ```
 
 ## Testing
 
 ```bash
-npm test                        # run all tests (~118 tests)
+npm test                        # run all tests (~129 tests)
 node --test test/sms.test.mjs   # run a single file
 ```
 
@@ -143,3 +154,11 @@ Tests use Node's built-in `node:test` runner with no extra test framework. The i
 - **No framework**: raw `http.createServer` with manual routing.
 - **No TypeScript**: plain ES Modules (`.mjs`).
 - **TwiML built by hand**: `lib/twiml.mjs` builds XML strings directly; all user text is XML-escaped.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing instructions, and the pull request process.
+
+## License
+
+[MIT](LICENSE)

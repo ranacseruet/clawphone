@@ -13,9 +13,12 @@
       "smsFastTimeoutMs":      { "type": "number",  "default": 15000 },
       "smsMaxChars":           { "type": "number",  "default": 280 },
       "discordLogChannelId":   { "type": "string",  "default": "" },
-      "openclawSessionId":     { "type": "string",  "default": "phone-rana" },
+      "openclawSessionId":     { "type": "string",  "default": "phone" },
       "openclawAgentId":       { "type": "string",  "default": "phone" },
-      "openclawMaxConcurrent": { "type": "number",  "default": 10 }
+      "openclawMaxConcurrent": { "type": "number",  "default": 10 },
+      "callerName":            { "type": "string",  "default": "" },
+      "agentName":             { "type": "string",  "default": "" },
+      "greetingText":          { "type": "string",  "default": "You are connected. Say something after the beep." }
     }
   },
   "uiHints": {
