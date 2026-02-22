@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { EventEmitter } from "node:events";
 
-import { parseForm, toSayableText, run, readBody, createSemaphore, createRateLimiter } from "../lib/utils.mjs";
+import { parseForm, toSayableText, run, readBody, createSemaphore, createRateLimiter, createLogger } from "../lib/utils.mjs";
 
 // ─── Mock request factory ───────────────────────────────────────────────────
 
@@ -210,6 +210,76 @@ describe("createRateLimiter", () => {
     assert.strictEqual(rl.check("key3"), false);
     await new Promise((r) => setTimeout(r, 60)); // wait past window
     assert.strictEqual(rl.check("key3"), true);
+  });
+});
+
+describe("createLogger", () => {
+  /**
+   * Spy on process.stdout.write and capture what was written.
+   * @param {() => void} fn
+   * @returns {string[]}
+   */
+  function captureStdout(fn) {
+    const lines = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    // @ts-ignore — replacing write with a spy for testing
+    process.stdout.write = (chunk) => { lines.push(String(chunk)); return true; };
+    try { fn(); } finally { process.stdout.write = orig; }
+    return lines;
+  }
+
+  it("emits a newline-terminated JSON line", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.log("hello"));
+    assert.strictEqual(lines.length, 1);
+    assert.ok(lines[0].endsWith("\n"));
+    const obj = JSON.parse(lines[0]);
+    assert.ok(typeof obj.ts === "string");
+    assert.strictEqual(obj.level, "info");
+    assert.strictEqual(obj.module, "test-mod");
+    assert.strictEqual(obj.msg, "hello");
+  });
+
+  it("sets level=warn for .warn()", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.warn("uh oh"));
+    const obj = JSON.parse(lines[0]);
+    assert.strictEqual(obj.level, "warn");
+    assert.strictEqual(obj.msg, "uh oh");
+  });
+
+  it("sets level=error for .error()", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.error("boom"));
+    const obj = JSON.parse(lines[0]);
+    assert.strictEqual(obj.level, "error");
+    assert.strictEqual(obj.msg, "boom");
+  });
+
+  it("spreads context fields into the JSON object", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.log("ctx test", { callSid: "CA123", from: "+15550001111" }));
+    const obj = JSON.parse(lines[0]);
+    assert.strictEqual(obj.callSid, "CA123");
+    assert.strictEqual(obj.from, "+15550001111");
+    assert.strictEqual(obj.msg, "ctx test");
+  });
+
+  it("ts is a valid ISO-8601 timestamp", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.log("ts test"));
+    const obj = JSON.parse(lines[0]);
+    const d = new Date(obj.ts);
+    assert.ok(!isNaN(d.getTime()), `ts "${obj.ts}" should be a valid date`);
+  });
+
+  it("msg is always the last field (appears after context)", () => {
+    const logger = createLogger("test-mod");
+    const lines = captureStdout(() => logger.log("last", { extra: "x" }));
+    const raw = lines[0].trim();
+    const msgIdx = raw.lastIndexOf('"msg"');
+    const extraIdx = raw.lastIndexOf('"extra"');
+    assert.ok(msgIdx > extraIdx, "msg should come after context keys");
   });
 });
 

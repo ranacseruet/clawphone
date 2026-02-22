@@ -11,6 +11,9 @@
 import * as envConfig from "./lib/config.mjs";
 import { createServer } from "./lib/http-server.mjs";
 import { waitForVoiceDrain } from "./lib/voice-state.mjs";
+import { createLogger } from "./lib/utils.mjs";
+
+const serverLog = createLogger("server");
 
 export const server = await createServer(envConfig);
 
@@ -19,14 +22,14 @@ export const server = await createServer(envConfig);
  * @returns {Promise<void>}
  */
 async function gracefulShutdown(signal) {
-  console.error(`[clawphone:server] ${signal} — stopping`);
+  serverLog.log("stopping", { signal });
   server.close();
 
   const remaining = await waitForVoiceDrain();
   if (remaining > 0) {
-    console.error(`[clawphone:server] shutdown: ${remaining} voice turn(s) abandoned`);
+    serverLog.warn("shutdown: voice turns abandoned", { remaining });
   } else {
-    console.error(`[clawphone:server] shutdown: clean`);
+    serverLog.log("shutdown: clean");
   }
   process.exit(0);
 }
