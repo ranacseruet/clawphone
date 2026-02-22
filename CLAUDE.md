@@ -20,6 +20,14 @@ pm2 start ecosystem.config.cjs
 pm2 logs twilio-phone-gateway
 ```
 
+OpenClaw plugin mode:
+```bash
+openclaw plugins install .          # install from project directory
+openclaw plugins enable twilio-phone-gateway
+openclaw plugins disable twilio-phone-gateway
+openclaw plugins list               # verify status
+```
+
 ## Architecture
 
 This is a Node.js HTTP server (ES Modules, no TypeScript, no framework) that bridges Twilio voice/SMS webhooks with the OpenClaw agent CLI. It uses only the built-in `http` module plus `twilio` and `dotenv` (no `ws` or other networking deps).
@@ -43,9 +51,14 @@ The `voice-state.mjs` module tracks pending turns using two Maps (`pending` keye
 
 ### Agent Integration
 
-`lib/agent.mjs` spawns the `openclaw` CLI as a child process:
-- `openclawReply({ userText, mode })` — mode is `"sms"` or `"voice"`, which controls system prompt constraints (SMS enforces ASCII-only, ≤ `SMS_MAX_CHARS` chars, no markdown)
-- `discordLog({ text })` — fire-and-forget Discord logging via `openclaw message send`; no-op when `DISCORD_LOG_CHANNEL_ID` is unset
+`lib/agent.mjs` has a **dual-path** design:
+
+- **Plugin path** (when `api` is injected via `index.mjs`): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process. Discord logging via `api.runtime.channel.discord.sendMessageDiscord()`.
+- **Standalone/PM2 path** (when `api` is `null`): spawns the `openclaw` CLI as a child process (`openclaw agent ...` / `openclaw message send`).
+
+Both paths share:
+- `openclawReply({ userText, mode })` — mode `"sms"` or `"voice"` controls prompt framing (SMS enforces ASCII-only, ≤ `SMS_MAX_CHARS` chars, no markdown)
+- `discordLog({ text })` — fire-and-forget; no-op when `DISCORD_LOG_CHANNEL_ID` is unset
 - Agent timeout: 120s; max concurrency controlled by a semaphore (`OPENCLAW_MAX_CONCURRENT`)
 
 ## Configuration
@@ -80,7 +93,7 @@ All configuration is via environment variables (standalone path), centralized in
 
 ## Testing
 
-Tests use the Node.js built-in `node:test` runner (~120 tests across 9 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
+Tests use the Node.js built-in `node:test` runner (~129 tests across 9 files). The integration test (`test/server.test.mjs`) isolates against real external calls by:
 - Setting `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` to `""` → `twilioClient` stays `null`, no real SMS; also causes `checkSignature` to skip validation
 - Setting `DISCORD_LOG_CHANNEL_ID` to `""` → `discordLog()` returns early, no Discord messages
 - Injecting a fake `openclaw` stub onto `PATH` → `openclawReply()` never reaches the real binary or agent
