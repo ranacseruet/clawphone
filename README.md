@@ -1,8 +1,61 @@
 # clawphone
 
+[![CI](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml/badge.svg)](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@ranacseruet/clawphone)](https://www.npmjs.com/package/@ranacseruet/clawphone)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](package.json)
+
 A Node.js HTTP gateway that bridges Twilio voice calls and SMS to the **OpenClaw** agent. No framework — raw `node:http`, ES Modules only.
 
 Runs as a **standalone server** (Node / PM2) or as an **[OpenClaw plugin](docs/plugin-install.md)**.
+
+## Why clawphone?
+
+OpenClaw ships an official `@openclaw/voice-call` plugin, but it is built on a fundamentally different architecture — and has different operational requirements. clawphone is designed to be the **lightest possible path** from a Twilio phone number to an AI agent.
+
+### Architecture: TwiML polling vs. Media Streams
+
+`@openclaw/voice-call` uses **Twilio Media Streams**: a persistent WebSocket carries raw mu-law audio both ways, with external STT and TTS services (OpenAI, ElevenLabs) processing the stream. This delivers lower latency and higher voice quality, but requires additional API accounts and more infrastructure.
+
+clawphone uses **TwiML webhook polling** with Twilio's built-in speech services — no external TTS or STT accounts needed:
+
+```
+/voice      →  <Gather input="speech">     Twilio records + transcribes the caller
+/speech     →  fire agent async            returns <Redirect /speech-wait?key=…>
+/speech-wait → poll until reply ready  →  <Say> agent reply (Twilio synthesises speech)
+```
+
+Everything runs over plain HTTP — no WebSocket server, no audio encoding, no streaming pipeline to manage.
+
+### Feature comparison
+
+| | `@openclaw/voice-call` | **clawphone** |
+|---|:---:|:---:|
+| **Deployment** | | |
+| Standalone server (PM2 / systemd) | — | ✓ |
+| OpenClaw plugin mode | — | ✓ |
+| Gateway-required | ✓ | — |
+| **Voice pipeline** | | |
+| External TTS required (OpenAI / ElevenLabs) | ✓ | — |
+| External STT required | ✓ | — |
+| WebSocket / Media Streams infrastructure | ✓ | — |
+| Twilio built-in `<Say>` + `<Gather>` | — | ✓ |
+| **SMS** | | |
+| SMS support (fast + async paths) | — | ✓ |
+| **Security & reliability** | | |
+| Twilio webhook signature validation | — | ✓ |
+| Per-number rate limiting | — | ✓ |
+| Graceful shutdown with voice drain | — | ✓ |
+| **Observability** | | |
+| Structured JSON logging | — | ✓ |
+| **Providers** | | |
+| Multi-provider (Telnyx, Plivo) | ✓ | — |
+
+### The honest trade-off
+
+clawphone trades voice quality and latency for operational simplicity. Twilio's built-in neural voices sound good; the polling loop adds a second or two of response time compared to a streaming pipeline. For a personal assistant or low-traffic deployment this is the right balance — one Twilio account, one Node process, no external APIs.
+
+Media Streams support (WebSocket pipeline, pluggable TTS/STT) is a potential future direction if there is demand for it. If that — or anything else — is something you need, **[open a feature request](https://github.com/ranacseruet/clawphone/issues/new?template=feature_request.md)**. Knowing what people actually need drives what gets built next.
 
 ## Prerequisites
 
@@ -79,7 +132,7 @@ See `.env.example` for a fully-annotated reference.
 ## Testing
 
 ```bash
-npm test                        # run all tests (144 tests)
+npm test                        # run all tests (166 tests)
 node --test test/sms.test.mjs   # run a single file
 ```
 
