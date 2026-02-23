@@ -1,5 +1,9 @@
 # clawphone
 
+<p align="center">
+  <img src="docs/logo.png" alt="clawphone logo" width="200" />
+</p>
+
 [![CI](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml/badge.svg)](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@ranacseruet/clawphone)](https://www.npmjs.com/package/@ranacseruet/clawphone)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
