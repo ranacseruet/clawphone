@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ranacseruet/clawphone.git"
+    "url": "git+https://github.com/ranacseruet/clawphone.git"
   },
   "homepage": "https://github.com/ranacseruet/clawphone#readme",
   "bugs": {
