@@ -36,7 +36,7 @@
     ]
   },
   "scripts": {
-    "test": "node --test",
+    "test": "NODE_OPTIONS='--import=./test/setup.mjs' node --test",
     "typecheck": "tsc",
     "lint": "eslint ."
   },
