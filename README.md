@@ -11,21 +11,51 @@ Runs as a **standalone server** (Node / PM2) or as an **[OpenClaw plugin](docs/p
 
 ## Why clawphone?
 
-OpenClaw ships an official `@openclaw/voice-call` plugin, but it only runs embedded inside the OpenClaw Gateway. clawphone takes a different approach: it is a self-contained Twilio webhook server that works with or without Gateway running.
+OpenClaw ships an official `@openclaw/voice-call` plugin, but it is built on a fundamentally different architecture — and has different operational requirements. clawphone is designed to be the **lightest possible path** from a Twilio phone number to an AI agent.
 
-| Feature | `@openclaw/voice-call` | **clawphone** |
+### Architecture: TwiML polling vs. Media Streams
+
+`@openclaw/voice-call` uses **Twilio Media Streams**: a persistent WebSocket carries raw mu-law audio both ways, with external STT and TTS services (OpenAI, ElevenLabs) processing the stream. This delivers lower latency and higher voice quality, but requires additional API accounts and more infrastructure.
+
+clawphone uses **TwiML webhook polling** with Twilio's built-in speech services — no external TTS or STT accounts needed:
+
+```
+/voice      →  <Gather input="speech">     Twilio records + transcribes the caller
+/speech     →  fire agent async            returns <Redirect /speech-wait?key=…>
+/speech-wait → poll until reply ready  →  <Say> agent reply (Twilio synthesises speech)
+```
+
+Everything runs over plain HTTP — no WebSocket server, no audio encoding, no streaming pipeline to manage.
+
+### Feature comparison
+
+| | `@openclaw/voice-call` | **clawphone** |
 |---|:---:|:---:|
+| **Deployment** | | |
 | Standalone server (PM2 / systemd) | — | ✓ |
 | OpenClaw plugin mode | — | ✓ |
-| SMS (fast + async paths) | — | ✓ |
+| Gateway-required | ✓ | — |
+| **Voice pipeline** | | |
+| External TTS required (OpenAI / ElevenLabs) | ✓ | — |
+| External STT required | ✓ | — |
+| WebSocket / Media Streams infrastructure | ✓ | — |
+| Twilio built-in `<Say>` + `<Gather>` | — | ✓ |
+| **SMS** | | |
+| SMS support (fast + async paths) | — | ✓ |
+| **Security & reliability** | | |
 | Twilio webhook signature validation | — | ✓ |
 | Per-number rate limiting | — | ✓ |
+| Graceful shutdown with voice drain | — | ✓ |
+| **Observability** | | |
 | Structured JSON logging | — | ✓ |
-| Graceful shutdown (voice drain) | — | ✓ |
+| **Providers** | | |
 | Multi-provider (Telnyx, Plivo) | ✓ | — |
-| Gateway-required | ✓ | — |
 
-**The short version:** if you want Twilio voice + SMS on a box that doesn't always have OpenClaw Gateway running — or you want to run it under PM2 as a standalone service — clawphone is the right tool.
+### The honest trade-off
+
+clawphone trades voice quality and latency for operational simplicity. Twilio's built-in neural voices sound good; the polling loop adds a second or two of response time compared to a streaming pipeline. For a personal assistant or low-traffic deployment this is the right balance — one Twilio account, one Node process, no external APIs.
+
+If you need ElevenLabs-quality voice or sub-second response times, `@openclaw/voice-call` is the better fit.
 
 ## Prerequisites
 
