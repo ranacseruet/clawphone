@@ -55,7 +55,7 @@ Everything runs over plain HTTP — no WebSocket server, no audio encoding, no s
 
 clawphone trades voice quality and latency for operational simplicity. Twilio's built-in neural voices sound good; the polling loop adds a second or two of response time compared to a streaming pipeline. For a personal assistant or low-traffic deployment this is the right balance — one Twilio account, one Node process, no external APIs.
 
-If you need ElevenLabs-quality voice or sub-second response times, `@openclaw/voice-call` is the better fit.
+Media Streams support (WebSocket pipeline, pluggable TTS/STT) is a potential future direction if there is demand for it. If that — or anything else — is something you need, **[open a feature request](https://github.com/ranacseruet/clawphone/issues/new?template=feature_request.md)**. Knowing what people actually need drives what gets built next.
 
 ## Prerequisites
 
