@@ -1,8 +1,31 @@
 # clawphone
 
+[![CI](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml/badge.svg)](https://github.com/ranacseruet/clawphone/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@ranacseruet/clawphone)](https://www.npmjs.com/package/@ranacseruet/clawphone)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](package.json)
+
 A Node.js HTTP gateway that bridges Twilio voice calls and SMS to the **OpenClaw** agent. No framework — raw `node:http`, ES Modules only.
 
 Runs as a **standalone server** (Node / PM2) or as an **[OpenClaw plugin](docs/plugin-install.md)**.
+
+## Why clawphone?
+
+OpenClaw ships an official `@openclaw/voice-call` plugin, but it only runs embedded inside the OpenClaw Gateway. clawphone takes a different approach: it is a self-contained Twilio webhook server that works with or without Gateway running.
+
+| Feature | `@openclaw/voice-call` | **clawphone** |
+|---|:---:|:---:|
+| Standalone server (PM2 / systemd) | — | ✓ |
+| OpenClaw plugin mode | — | ✓ |
+| SMS (fast + async paths) | — | ✓ |
+| Twilio webhook signature validation | — | ✓ |
+| Per-number rate limiting | — | ✓ |
+| Structured JSON logging | — | ✓ |
+| Graceful shutdown (voice drain) | — | ✓ |
+| Multi-provider (Telnyx, Plivo) | ✓ | — |
+| Gateway-required | ✓ | — |
+
+**The short version:** if you want Twilio voice + SMS on a box that doesn't always have OpenClaw Gateway running — or you want to run it under PM2 as a standalone service — clawphone is the right tool.
 
 ## Prerequisites
 
@@ -79,7 +102,7 @@ See `.env.example` for a fully-annotated reference.
 ## Testing
 
 ```bash
-npm test                        # run all tests (144 tests)
+npm test                        # run all tests (166 tests)
 node --test test/sms.test.mjs   # run a single file
 ```
 
