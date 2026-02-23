@@ -55,10 +55,10 @@ See the sections below for the full config reference, Twilio webhook setup, and 
 ### From npm (when published)
 
 ```bash
-openclaw plugins install @openclaw/clawphone
+openclaw plugins install @ranacseruet/clawphone
 
 # Pin to exact resolved version
-openclaw plugins install --pin @openclaw/clawphone
+openclaw plugins install --pin @ranacseruet/clawphone
 ```
 
 Supports `openclaw plugins update clawphone` to pull newer versions.

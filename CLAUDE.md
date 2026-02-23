@@ -38,7 +38,7 @@ OpenClaw plugin (quick reference — full guide in `docs/plugin-install.md`):
 ```bash
 openclaw plugins install .            # local copy (note: GitHub URLs not supported)
 openclaw plugins install --link .     # local dev (live symlink)
-openclaw plugins install @openclaw/clawphone  # from npm registry (when published)
+openclaw plugins install @ranacseruet/clawphone  # from npm registry (when published)
 openclaw config set plugins.allow '["clawphone"]'
 openclaw plugins list                 # verify "loaded"
 openclaw gateway stop && openclaw gateway install  # restart to reload

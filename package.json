@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/clawphone",
+  "name": "@ranacseruet/clawphone",
   "version": "1.0.0",
   "description": "Twilio voice and SMS gateway plugin for OpenClaw",
   "type": "module",

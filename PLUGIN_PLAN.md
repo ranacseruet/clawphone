@@ -81,7 +81,7 @@ Phase 2 should update `lib/http-server.mjs` (not `server.mjs`) when threading `a
 
 ```json
 {
-  "name": "@openclaw/clawphone",
+  "name": "@ranacseruet/clawphone",
   "version": "1.0.0",
   "description": "Twilio voice and SMS gateway plugin for OpenClaw",
   "type": "module",
@@ -279,7 +279,7 @@ assert.strictEqual(typeof plugin.register, "function");
 openclaw plugins install -l ./clawphone
 
 # Production (from npm once published)
-openclaw plugins install @openclaw/clawphone
+openclaw plugins install @ranacseruet/clawphone
 
 # Configure
 openclaw plugins config clawphone set twilioAccountSid ACxxx
