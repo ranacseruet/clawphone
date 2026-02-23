@@ -1,0 +1,54 @@
+{
+  "name": "@openclaw/clawphone",
+  "version": "1.0.0",
+  "description": "Twilio voice and SMS gateway plugin for OpenClaw",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "author": "ranacseruet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ranacseruet/clawphone.git"
+  },
+  "homepage": "https://github.com/ranacseruet/clawphone#readme",
+  "bugs": {
+    "url": "https://github.com/ranacseruet/clawphone/issues"
+  },
+  "keywords": [
+    "twilio",
+    "voice",
+    "sms",
+    "openclaw",
+    "plugin",
+    "gateway",
+    "agent",
+    "webhook"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.mjs"
+    ]
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "twilio": "^5.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.3.0",
+    "eslint": "^10.0.1",
+    "globals": "^17.3.0",
+    "typescript": "^5.9.3"
+  }
+}

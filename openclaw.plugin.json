@@ -1,0 +1,32 @@
+{
+  "id": "clawphone",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "port":                  { "type": "number",  "default": 8787 },
+      "allowFrom":             { "type": "array", "items": { "type": "string" }, "default": [] },
+      "twilioAccountSid":      { "type": "string", "default": "" },
+      "twilioAuthToken":       { "type": "string", "default": "" },
+      "twilioSmsFrom":         { "type": "string", "default": "" },
+      "publicBaseUrl":         { "type": "string", "default": "" },
+      "smsFastTimeoutMs":      { "type": "number",  "default": 15000 },
+      "smsMaxChars":           { "type": "number",  "default": 280 },
+      "discordLogChannelId":   { "type": "string",  "default": "" },
+      "openclawSessionId":     { "type": "string",  "default": "phone" },
+      "openclawAgentId":       { "type": "string",  "default": "phone" },
+      "openclawMaxConcurrent": { "type": "number",  "default": 10 },
+      "callerName":            { "type": "string",  "default": "" },
+      "agentName":             { "type": "string",  "default": "" },
+      "greetingText":          { "type": "string",  "default": "You are connected. Say something after the beep." },
+      "rateLimitMax":          { "type": "number",  "default": 20 },
+      "rateLimitWindowMs":     { "type": "number",  "default": 60000 }
+    }
+  },
+  "uiHints": {
+    "twilioAccountSid":  { "label": "Twilio Account SID" },
+    "twilioAuthToken":   { "label": "Twilio Auth Token", "sensitive": true },
+    "publicBaseUrl":     { "label": "Public Webhook Base URL", "placeholder": "https://twilio.i2dev.com" },
+    "allowFrom":         { "label": "Allowed Phone Numbers (E.164)", "placeholder": "+15551234567" }
+  }
+}
