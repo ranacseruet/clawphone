@@ -15,22 +15,25 @@ From when the user **stops speaking** to when they **hear the first word of the 
   +0 ms     — Twilio silence detection ("auto" endpointing, typically ~500 ms after last word)
   +500 ms   — STT processing (Twilio internal; ~350 ms median per Twilio's own benchmarks)
   +200 ms   — /speech webhook round-trip (cloudflared adds 50-200 ms on top of base network)
-  +100 ms   — thinkingRedirect() processing + TwiML generation
+  +100 ms   — /speech handler: createPendingTurn() + openclawReply() fired async ← AGENT STARTS HERE
   ─────────
-  ~800 ms   — delay before thinking phrase starts playing
+  ~800 ms   — TwiML returned to Twilio; thinking phrase begins playing
+              (agent is already running concurrently from this point)
 
   +1500 ms  — TTS plays the thinking phrase ("Got it. One moment while I think.")
+              ↑ this is free time — agent has been running for the full phrase duration
   ─────────
   ~2300 ms  — <Redirect /speech-wait> fires
 
-  +200 ms   — /speech-wait round-trip
-              [agent still running → return <Pause length="2"/>]
+  +200 ms   — /speech-wait round-trip #1
+              ├─ agent done  → reply delivered immediately (no silence at all)
+              └─ not done    → return <Pause length="2"/> + redirect
 
-  +2000 ms  — 2 s pause elapses
+  +2000 ms  — 2 s silent pause
   +200 ms   — /speech-wait round-trip #2
               [agent still running → return <Pause length="2"/>]
 
-  +2000 ms  — 2 s pause elapses
+  +2000 ms  — 2 s silent pause
   ... poll repeats until agent finishes ...
 ```
 
@@ -97,22 +100,37 @@ Better STT accuracy reduces wasted turns from misrecognitions. The model is also
 
 ---
 
-### Gap 3 — Default thinking phrases are too long (▶ [#24](https://github.com/ranacseruet/clawphone/issues/24))
+### Gap 3 — Silent polling loop gives no feedback during slow agent turns (▶ [#24](https://github.com/ranacseruet/clawphone/issues/24))
 
-**Code:** `lib/config.mjs:82-89`, `lib/config.mjs:106-113` (duplicate in `fromPluginConfig`)
+**Code:** `lib/config.mjs:82-89`, `lib/twiml.mjs:85-90`, `lib/http-server.mjs:251-255`
 
-The thinking phrase is TTS'd in full before `<Redirect /speech-wait>` fires:
+**Correction from original analysis:** The original framing stated that long thinking phrases add latency. This was wrong. The agent call fires asynchronously at the top of the `/speech` handler, *before* the TwiML response is returned. The thinking phrase plays while the agent is already running — phrase duration is free overlap time, not dead air. For fast agents that complete during the phrase, the reply is delivered on the very first poll with zero additional silence.
+
+**The actual gap** is in the polling loop. Once the phrase ends and the agent hasn't finished, `pauseAndRedirect()` returns `<Pause 2s><Redirect>` — silent. For a slow agent taking 6-8s, the caller hears: phrase (~2s) then 4-6s of complete silence. No audio feedback at all.
+
+**There is no reliable way to predict agent response time upfront** (it depends on model speed, tool calls, and answer complexity — not on question length or content). So the solution cannot be "choose long vs. short phrase based on expected duration."
+
+**Proposed design — two-stage audio feedback:**
+
+1. **Short initial phrase** (on `/speech`): 2-3 words — "One moment.", "Let me check." — played while agent starts. Short enough not to overrun a fast reply.
+2. **Poll-cycle filler phrases** (in `/speech-wait` when agent not done): replace the silent `<Pause>` with a `<Say>filler</Say>` for the first 1-2 poll cycles, then fall back to silent pauses.
 
 ```
-<Say>Got it. One moment while I think.</Say>   ← ~2 s of audio
-<Redirect>/speech-wait?key=…</Redirect>         ← fires only after Say completes
+Fast agent (finishes during phrase, ~1-2s):
+  "One moment."  →  [poll 1: reply ready]  →  reply delivered. No silence.
+
+Slow agent (6-8s):
+  "One moment."  →  [poll 1: "Still working on it."]
+                 →  [poll 2: "Almost there."]
+                 →  [poll 3+: silent <Pause>]
+                 →  [poll N: reply ready]  →  reply delivered
 ```
 
-Current phrases average 5-7 words (~1.5-2 s of TTS audio). This dead air precedes every poll cycle, meaning callers wait 2 s of phrase + 1-2 s first poll before any chance of a reply.
+**Implementation note:** `/speech-wait` currently has no concept of poll count for a given turn. Simplest approach: pass `&poll=N` in the redirect URL (stateless, no change to `voice-state.mjs`). The handler reads it, decides filler vs. silent pause, and increments N in the next redirect.
 
-Shortening to 2-3 words ("One moment.", "Hold on.", "Got it.") saves ~0.5-1 s per turn without any architectural change.
+Cap fillers at **2** before falling back to silent pauses — covers ~5s of agent time without becoming repetitive.
 
-**Tracking:** [#24 — perf: shorten default thinking phrases to reduce pre-poll dead air](https://github.com/ranacseruet/clawphone/issues/24)
+**Tracking:** [#24 — perf: redesign thinking phrases — short initial phrase + poll-cycle fillers for slow agents](https://github.com/ranacseruet/clawphone/issues/24)
 
 ---
 
@@ -163,7 +181,7 @@ These are not gaps — existing choices are correct:
 - **`speechTimeout: "auto"`** — Twilio's smart endpointing; correct default for conversational AI.
 - **`Google.en-US-Chirp3-HD-Charon`** — Google's latest neural TTS voice; good time-to-first-audio.
 - **`--thinking off` passed to standalone openclaw** — Extended thinking adds 10-30 s; disabled correctly.
-- **Async agent dispatch in `/speech`** — Agent call fires immediately with no blocking; TwiML returned in ~100 ms.
+- **Async agent dispatch in `/speech`** — Agent call fires before the TwiML response is sent; the thinking phrase plays concurrently while the agent runs. For fast agents this means zero polling silence — the reply is ready on the first `/speech-wait` poll.
 - **`MAX_SAYABLE_LENGTH = 600`** — Short replies play faster; limit is appropriate.
 - **Semaphore for concurrent agent calls** — Prevents runaway resource usage.
 - **Stale turn handling** — Correct supersession logic prevents delivering wrong replies.
@@ -176,7 +194,7 @@ These are not gaps — existing choices are correct:
 |---|---|---|---|---|---|
 | 1 | Poll interval 2 s → 1 s + env var | Trivial | ~1 s/turn | P2 | [#22](https://github.com/ranacseruet/clawphone/issues/22) |
 | 2 | Add `speechModel="phone_call"` | Minor | ~200 ms/turn | P2 | [#23](https://github.com/ranacseruet/clawphone/issues/23) |
-| 3 | Shorten thinking phrases | Trivial | ~0.5-1 s/turn | P2 | [#24](https://github.com/ranacseruet/clawphone/issues/24) |
+| 3 | Short initial phrase + poll-cycle fillers for slow agents | Minor | Eliminates silence for fast agents; masks ~4s for slow agents | P2 | [#24](https://github.com/ranacseruet/clawphone/issues/24) |
 | 4 | Expose `TWILIO_SPEECH_MODEL` as config | Minor | User-tuneable | P2 | [#25](https://github.com/ranacseruet/clawphone/issues/25) |
 | 5 | `partialResultCallback` early agent start | Hard (blocked) | 1-2 s/turn | P3 | [#26](https://github.com/ranacseruet/clawphone/issues/26) |
 | 6 | Document plugin-mode latency advantage | Trivial (docs) | ~300 ms/turn | P3 | [#27](https://github.com/ranacseruet/clawphone/issues/27) |
