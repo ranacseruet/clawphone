@@ -30,6 +30,15 @@ The fast-path SMS timeout defaults to 15 s. If your agent typically replies in 4
 
 Leave `ALLOW_FROM` blank only in development. In production, set it to your own number(s). An open gateway will accept calls from anyone and run agent invocations against your account.
 
+`ALLOW_FROM` and webhook signature validation are two independent security layers — both should be set in production:
+
+| Layer | What it protects against | How to enable |
+|---|---|---|
+| Webhook signature validation | Fake requests hitting your endpoint directly (not from Twilio) | Set both `TWILIO_AUTH_TOKEN` and `PUBLIC_BASE_URL` |
+| `ALLOW_FROM` allowlist | Legitimate Twilio calls from unauthorised numbers | Set `ALLOW_FROM` to a comma-separated list of E.164 numbers |
+
+Signature validation alone does not stop a real call from an unknown number. `ALLOW_FROM` alone does not stop someone from hitting your webhook URL directly. The server emits a startup warning if either is unconfigured.
+
 ## Set `OPENCLAW_MAX_CONCURRENT=1` for personal use
 
 The default (`10`) is sized for multi-user deployments. For a single-person assistant, set this to `1`. It makes concurrency behaviour predictable and prevents two overlapping agent calls if something unexpected re-enters `/speech`.
