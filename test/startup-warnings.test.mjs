@@ -7,7 +7,7 @@
  * createServer() call to assert the right messages are (or aren't) emitted.
  */
 
-import { describe, it } from "node:test";
+import { describe, it, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, writeFileSync, rmSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,6 +28,8 @@ chmodSync(fakeOpenclawPath, 0o755);
 if (!process.env.PATH?.startsWith(fakeBinDir)) {
   process.env.PATH = `${fakeBinDir}:${process.env.PATH}`;
 }
+
+after(() => rmSync(fakeBinDir, { recursive: true, force: true }));
 
 /**
  * Run createServer() with the given config overrides, capturing all
