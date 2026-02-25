@@ -36,6 +36,26 @@ Twilio polls (every ~2 s)
 
 **Stale turn handling:** `lib/voice-state.mjs` tracks pending turns in two Maps — `pending` (keyed by `callSid:uuid`) and `latestByCall` (keyed by `CallSid`). If the caller speaks again before the previous reply is ready, the old turn is superseded: `/speech-wait` detects it is no longer the latest turn and discards the stale reply, redirecting to `/speech` to pick up the new one.
 
+### Barge-in behaviour
+
+| Phase | Barge-in supported? |
+|---|---|
+| Greeting (before/during beep) | Yes — speech is inside a `<Gather>`; Twilio stops TTS and captures it natively |
+| Agent reply | Yes — reply is also inside a `<Gather>`; speaking mid-reply fires `/speech` immediately |
+| Thinking / polling phase | **No** — the loop is `<Say phrase>` + `<Pause>` + `<Redirect>`; there is no `<Gather>`, so the caller cannot interrupt |
+
+During the thinking phase the caller must wait until the agent reply is ready before they can speak again.
+
+**Why adding `<Gather>` to the polling loop is non-trivial:**
+
+Two structural limitations make a naive implementation counter-productive:
+
+1. **Semaphore serialization.** `lib/agent.mjs` gates all agent calls behind a shared semaphore (`OPENCLAW_MAX_CONCURRENT`). A barge-in turn queues behind the still-running old call. Total wait = old call + new call — worse than no barge-in.
+
+2. **No cancellation path.** The in-flight agent call has no `AbortSignal` (plugin path) and no subprocess reference to kill (standalone path). It runs to completion regardless, and its result is written to the shared conversation session. This leaves a phantom Q&A turn in the agent's history that the caller never heard, which can degrade subsequent responses.
+
+Until both issues are addressed (cancellable agent calls + session rollback on abort), barge-in during the thinking phase is intentionally left unsupported.
+
 ---
 
 ## SMS flow

@@ -133,6 +133,10 @@ All configuration is via environment variables (loaded from `.env` by dotenv). V
 
 See `.env.example` for a fully-annotated reference.
 
+## Tips for best results
+
+See **[docs/best-practices.md](docs/best-practices.md)** for guidance on model selection, disabling extended thinking, writing a voice-optimised system prompt, and tuning key config values.
+
 ## Testing
 
 ```bash
@@ -145,6 +149,7 @@ Tests use Node's built-in `node:test` runner with no external framework. No real
 ## Documentation
 
 - [Architecture](docs/architecture.md) — voice/SMS flow, agent dual-path, module layout, design constraints
+- [Best practices](docs/best-practices.md) — model selection, prompt tuning, config recommendations
 - [Plugin installation](docs/plugin-install.md) — OpenClaw plugin setup, config reference, update workflow
 
 ## Contributing
