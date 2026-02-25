@@ -26,7 +26,7 @@ The caller hears the full greeting before they can speak. A one-sentence greetin
 
 The fast-path SMS timeout defaults to 15 s. If your agent typically replies in 4–6 s, lower this to something like `8000` — you get inline replies for normal queries while still falling back to async for slow ones. Setting it too high means callers wait longer for every SMS.
 
-## Lock down `ALLOW_FROM` in production
+## ⚠️ Lock down `ALLOW_FROM` in production
 
 Leave `ALLOW_FROM` blank only in development. In production, set it to your own number(s). An open gateway will accept calls from anyone and run agent invocations against your account.
 
