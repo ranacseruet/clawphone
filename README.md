@@ -151,6 +151,7 @@ Tests use Node's built-in `node:test` runner with no external framework. No real
 - [Architecture](docs/architecture.md) — voice/SMS flow, agent dual-path, module layout, design constraints
 - [Best practices](docs/best-practices.md) — model selection, prompt tuning, config recommendations
 - [Plugin installation](docs/plugin-install.md) — OpenClaw plugin setup, config reference, update workflow
+- [Voice latency analysis](docs/research/voice-latency.md) — E2E latency breakdown, Twilio parameter audit, improvement issues
 
 ## Contributing
 
