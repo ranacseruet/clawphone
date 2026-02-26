@@ -10,6 +10,7 @@ import {
   replyWithGather,
   thinkingRedirect,
   pauseAndRedirect,
+  fillerAndRedirect,
 } from "../lib/twiml.mjs";
 import { TWILIO_VOICE, GATHER_TIMEOUT_SECONDS, GATHER_FOLLOWUP_TIMEOUT_SECONDS, SPEECH_WAIT_PAUSE_SECONDS } from "../lib/config.mjs";
 
@@ -106,6 +107,19 @@ describe("TwiML builders", () => {
       const result = pauseAndRedirect("/speech-wait?key=abc");
       assert.ok(result.includes(`<Pause length="${SPEECH_WAIT_PAUSE_SECONDS}"/>`));
       assert.ok(result.includes('<Redirect method="POST">/speech-wait?key=abc</Redirect>'));
+    });
+  });
+
+  describe("fillerAndRedirect", () => {
+    it("says filler phrase and redirects", () => {
+      const result = fillerAndRedirect("Still working on it.", "/speech-wait?key=xyz&poll=2");
+      assert.ok(result.includes(">Still working on it.</Say>"));
+      assert.ok(result.includes('<Redirect method="POST">/speech-wait?key=xyz&amp;poll=2</Redirect>'));
+    });
+
+    it("does not include a Pause element", () => {
+      const result = fillerAndRedirect("Almost there.", "/speech-wait?key=xyz&poll=3");
+      assert.ok(!result.includes("<Pause"));
     });
   });
 
