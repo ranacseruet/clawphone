@@ -127,6 +127,7 @@ All configuration is via environment variables (loaded from `.env` by dotenv). V
 | `SMS_FAST_TIMEOUT_MS` | `15000` | Fast-path timeout (ms) before falling back to async SMS |
 | `RATE_LIMIT_MAX` | `20` | Max requests per phone number per window (0 = disabled) |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | Rate limit window in ms (default: 1 minute) |
+| `SPEECH_WAIT_PAUSE_SECONDS` | `1` | Seconds to pause between `/speech-wait` polls while waiting for the agent (Twilio minimum: 1) |
 | `CALLER_NAME` | *(none)* | Optional name shown in Discord logs and agent prompt (e.g. `Alice`) |
 | `AGENT_NAME` | *(none)* | Optional agent display name shown in Discord logs (e.g. `Bot`) |
 | `GREETING_TEXT` | `You are connected. Say something after the beep.` | Voice greeting spoken when a call connects |
