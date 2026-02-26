@@ -8,7 +8,7 @@ import {
   getRandomThinkingPhrase,
   PORT,
   TWILIO_VOICE,
-  TWILIO_SPEECH_MODEL,
+  TWILIO_STT_MODEL,
   SMS_MAX_CHARS,
   MAX_SAYABLE_LENGTH,
   RATE_LIMIT_MAX,
@@ -54,9 +54,9 @@ describe("config", () => {
       assert.strictEqual(SPEECH_WAIT_PAUSE_SECONDS, 1);
     });
 
-    it("has TWILIO_SPEECH_MODEL defaulting to phone_call", () => {
-      assert.strictEqual(typeof TWILIO_SPEECH_MODEL, "string");
-      assert.strictEqual(TWILIO_SPEECH_MODEL, "phone_call");
+    it("has TWILIO_STT_MODEL defaulting to phone_call", () => {
+      assert.strictEqual(typeof TWILIO_STT_MODEL, "string");
+      assert.strictEqual(TWILIO_STT_MODEL, "phone_call");
     });
   });
 
@@ -72,15 +72,15 @@ describe("config", () => {
     });
   });
 
-  describe("fromPluginConfig — TWILIO_SPEECH_MODEL", () => {
+  describe("fromPluginConfig — TWILIO_STT_MODEL", () => {
     it("defaults to phone_call when not provided", () => {
       const cfg = fromPluginConfig({});
-      assert.strictEqual(cfg.TWILIO_SPEECH_MODEL, "phone_call");
+      assert.strictEqual(cfg.TWILIO_STT_MODEL, "phone_call");
     });
 
-    it("maps twilioSpeechModel from plugin config", () => {
-      const cfg = fromPluginConfig({ twilioSpeechModel: "googlev2_telephony" });
-      assert.strictEqual(cfg.TWILIO_SPEECH_MODEL, "googlev2_telephony");
+    it("maps twilioSttModel from plugin config", () => {
+      const cfg = fromPluginConfig({ twilioSttModel: "googlev2_telephony" });
+      assert.strictEqual(cfg.TWILIO_STT_MODEL, "googlev2_telephony");
     });
   });
 

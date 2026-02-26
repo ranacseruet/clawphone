@@ -135,7 +135,7 @@ openclaw config set plugins.entries.clawphone.config.speechWaitPauseSeconds 1
 
 # Optional — Twilio STT model (default: phone_call)
 # Options: phone_call, googlev2_telephony, googlev2_telephony_short, default
-openclaw config set plugins.entries.clawphone.config.twilioSpeechModel '"phone_call"'
+openclaw config set plugins.entries.clawphone.config.twilioSttModel '"phone_call"'
 ```
 
 ---

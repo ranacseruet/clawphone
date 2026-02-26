@@ -22,7 +22,7 @@
       "rateLimitMax":              { "type": "number",  "default": 20 },
       "rateLimitWindowMs":         { "type": "number",  "default": 60000 },
       "speechWaitPauseSeconds":    { "type": "number",  "default": 1 },
-      "twilioSpeechModel":         { "type": "string",  "default": "phone_call" }
+      "twilioSttModel":             { "type": "string",  "default": "phone_call" }
     }
   },
   "uiHints": {
