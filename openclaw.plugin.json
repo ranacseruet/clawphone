@@ -19,8 +19,9 @@
       "callerName":            { "type": "string",  "default": "" },
       "agentName":             { "type": "string",  "default": "" },
       "greetingText":          { "type": "string",  "default": "You are connected. Say something after the beep." },
-      "rateLimitMax":          { "type": "number",  "default": 20 },
-      "rateLimitWindowMs":     { "type": "number",  "default": 60000 }
+      "rateLimitMax":              { "type": "number",  "default": 20 },
+      "rateLimitWindowMs":         { "type": "number",  "default": 60000 },
+      "speechWaitPauseSeconds":    { "type": "number",  "default": 1 }
     }
   },
   "uiHints": {

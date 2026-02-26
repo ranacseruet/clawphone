@@ -11,6 +11,8 @@ import {
   MAX_SAYABLE_LENGTH,
   RATE_LIMIT_MAX,
   RATE_LIMIT_WINDOW_MS,
+  SPEECH_WAIT_PAUSE_SECONDS,
+  fromPluginConfig,
 } from "../lib/config.mjs";
 
 describe("config", () => {
@@ -43,6 +45,23 @@ describe("config", () => {
     it("has RATE_LIMIT_WINDOW_MS as a positive number", () => {
       assert.strictEqual(typeof RATE_LIMIT_WINDOW_MS, "number");
       assert.ok(RATE_LIMIT_WINDOW_MS > 0);
+    });
+
+    it("has SPEECH_WAIT_PAUSE_SECONDS defaulting to 1", () => {
+      assert.strictEqual(typeof SPEECH_WAIT_PAUSE_SECONDS, "number");
+      assert.strictEqual(SPEECH_WAIT_PAUSE_SECONDS, 1);
+    });
+  });
+
+  describe("fromPluginConfig — SPEECH_WAIT_PAUSE_SECONDS", () => {
+    it("defaults to 1 when not provided", () => {
+      const cfg = fromPluginConfig({});
+      assert.strictEqual(cfg.SPEECH_WAIT_PAUSE_SECONDS, 1);
+    });
+
+    it("maps speechWaitPauseSeconds from plugin config", () => {
+      const cfg = fromPluginConfig({ speechWaitPauseSeconds: 2 });
+      assert.strictEqual(cfg.SPEECH_WAIT_PAUSE_SECONDS, 2);
     });
   });
 

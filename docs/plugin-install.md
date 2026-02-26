@@ -129,6 +129,9 @@ openclaw config set plugins.entries.clawphone.config.openclawAgentId '"phone"'
 # Optional — rate limiting (per-number sliding window; 0 disables)
 openclaw config set plugins.entries.clawphone.config.rateLimitMax 20
 openclaw config set plugins.entries.clawphone.config.rateLimitWindowMs 60000
+
+# Optional — voice polling interval in seconds (default: 1; Twilio minimum: 1)
+openclaw config set plugins.entries.clawphone.config.speechWaitPauseSeconds 1
 ```
 
 ---
