@@ -1,9 +1,14 @@
 // @ts-check
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 import plugin from "../index.mjs";
 import { fromPluginConfig } from "../lib/config.mjs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("plugin manifest", () => {
   it("has correct id", () => {
@@ -92,5 +97,38 @@ describe("fromPluginConfig", () => {
     assert.ok(cfg.THINKING_PHRASES.includes(cfg.getRandomThinkingPhrase()));
     assert.ok(Array.isArray(cfg.POLL_FILLER_PHRASES));
     assert.ok(cfg.POLL_FILLER_PHRASES.length > 0);
+  });
+
+  it("maps every configSchema property to a non-undefined output key", () => {
+    const pluginJson = JSON.parse(readFileSync(join(__dirname, "..", "openclaw.plugin.json"), "utf8"));
+    const schemaProps = /** @type {Record<string, {type: string}>} */ (pluginJson.configSchema.properties);
+    const schemaKeys = Object.keys(schemaProps);
+
+    // Inject a unique sentinel value per schema key, typed to match the schema
+    /** @type {Record<string, unknown>} */
+    const sentinelInput = {};
+    for (const [i, key] of schemaKeys.entries()) {
+      const type = schemaProps[key].type;
+      if (type === "number") sentinelInput[key] = 90000 + i;
+      else if (type === "array") sentinelInput[key] = [`sentinel-${key}`];
+      else sentinelInput[key] = `sentinel-${key}`;
+    }
+
+    const output = fromPluginConfig(/** @type {import('../lib/config.mjs').PluginConfig} */ (sentinelInput));
+    const outputValues = Object.values(output);
+
+    for (const [i, key] of schemaKeys.entries()) {
+      const type = schemaProps[key].type;
+      /** @type {unknown} */
+      let expected;
+      if (type === "number") expected = 90000 + i;
+      else if (type === "array") expected = [`sentinel-${key}`];
+      else expected = `sentinel-${key}`;
+
+      assert.ok(
+        outputValues.some(v => JSON.stringify(v) === JSON.stringify(expected)),
+        `configSchema property '${key}' is not mapped in fromPluginConfig()`
+      );
+    }
   });
 });
