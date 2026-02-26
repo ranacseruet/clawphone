@@ -194,7 +194,7 @@ These are not gaps — existing choices are correct:
 |---|---|---|---|---|---|
 | 1 | Poll interval 2 s → 1 s + env var | Trivial | ~1 s/turn | P2 | [#22](https://github.com/ranacseruet/clawphone/issues/22) |
 | 2 | Add `speechModel="phone_call"` | Minor | ~200 ms/turn | P2 | [#23](https://github.com/ranacseruet/clawphone/issues/23) |
-| 3 | Short initial phrase + poll-cycle fillers for slow agents | Minor | Eliminates silence for fast agents; masks ~4s for slow agents | P2 | [#24](https://github.com/ranacseruet/clawphone/issues/24) |
+| 3 | Short initial phrase + poll-cycle fillers for slow agents | Minor | Eliminates silence for fast agents; masks ~4s for slow agents | P2 ✓ | [#24](https://github.com/ranacseruet/clawphone/issues/24) |
 | 4 | Expose `TWILIO_SPEECH_MODEL` as config | Minor | User-tuneable | P2 | [#25](https://github.com/ranacseruet/clawphone/issues/25) |
 | 5 | `partialResultCallback` early agent start | Hard (blocked) | 1-2 s/turn | P3 | [#26](https://github.com/ranacseruet/clawphone/issues/26) |
 | 6 | Document plugin-mode latency advantage | Trivial (docs) | ~300 ms/turn | P3 | [#27](https://github.com/ranacseruet/clawphone/issues/27) |

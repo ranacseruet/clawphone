@@ -4,6 +4,7 @@ import assert from "node:assert";
 
 import {
   THINKING_PHRASES,
+  POLL_FILLER_PHRASES,
   getRandomThinkingPhrase,
   PORT,
   TWILIO_VOICE,
@@ -94,6 +95,40 @@ describe("config", () => {
       }
       // Should get more than one unique phrase (unless extremely unlucky)
       assert.ok(results.size > 1, "Expected multiple unique phrases");
+    });
+  });
+
+  describe("POLL_FILLER_PHRASES", () => {
+    it("is a non-empty array", () => {
+      assert.ok(Array.isArray(POLL_FILLER_PHRASES));
+      assert.ok(POLL_FILLER_PHRASES.length > 0);
+    });
+
+    it("contains only non-empty strings", () => {
+      for (const phrase of POLL_FILLER_PHRASES) {
+        assert.strictEqual(typeof phrase, "string");
+        assert.ok(phrase.length > 0);
+      }
+    });
+
+    it("has exactly 2 phrases (caps filler at 2 poll cycles)", () => {
+      assert.strictEqual(POLL_FILLER_PHRASES.length, 2);
+    });
+  });
+
+  describe("fromPluginConfig — POLL_FILLER_PHRASES", () => {
+    it("includes POLL_FILLER_PHRASES as a non-empty array", () => {
+      const cfg = fromPluginConfig({});
+      assert.ok(Array.isArray(cfg.POLL_FILLER_PHRASES));
+      assert.ok(cfg.POLL_FILLER_PHRASES.length > 0);
+    });
+
+    it("POLL_FILLER_PHRASES contains only non-empty strings", () => {
+      const cfg = fromPluginConfig({});
+      for (const phrase of cfg.POLL_FILLER_PHRASES) {
+        assert.strictEqual(typeof phrase, "string");
+        assert.ok(phrase.length > 0);
+      }
     });
   });
 });

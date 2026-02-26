@@ -194,6 +194,8 @@ describe("server integration", () => {
     assert.match(res.headers["content-type"], /text\/xml/);
     assert.match(res.body, /<Redirect/);
     assert.match(res.body, /speech-wait/);
+    // Must include poll=1 so the first /speech-wait poll can play a filler phrase
+    assert.match(res.body, /poll=1/);
   });
 
   it("POST /speech with empty SpeechResult → still returns thinking redirect", async () => {
@@ -231,7 +233,7 @@ describe("server integration", () => {
     assert.match(res.body, /<Hangup/);
   });
 
-  it("POST /speech-wait with pending (not done) turn → Pause + Redirect", async () => {
+  it("POST /speech-wait with pending (not done) turn, no poll param → Pause + Redirect", async () => {
     const callSid = "CA-sw-pending";
     const key = `${callSid}:t1`;
     createPendingTurn({ key, callSid, from: "+15550001111", said: "waiting" });
@@ -244,6 +246,64 @@ describe("server integration", () => {
     assert.strictEqual(res.status, 200);
     assert.match(res.body, /<Pause/);
     assert.match(res.body, /speech-wait/);
+
+    deleteTurn(key);
+  });
+
+  it("POST /speech-wait with pending turn + poll=1 → filler phrase + Redirect (no Pause)", async () => {
+    const callSid = "CA-sw-filler1";
+    const key = `${callSid}:t1`;
+    createPendingTurn({ key, callSid, from: "+15550001111", said: "waiting" });
+
+    const res = await post(
+      `/speech-wait?key=${encodeURIComponent(key)}&poll=1`,
+      "",
+      port
+    );
+    assert.strictEqual(res.status, 200);
+    // Should have a Say element (filler phrase), not a Pause
+    assert.match(res.body, /<Say/);
+    assert.doesNotMatch(res.body, /<Pause/);
+    assert.match(res.body, /speech-wait/);
+    // Next poll param should be incremented to 2
+    assert.match(res.body, /poll=2/);
+
+    deleteTurn(key);
+  });
+
+  it("POST /speech-wait with pending turn + poll=2 → second filler phrase + Redirect (no Pause)", async () => {
+    const callSid = "CA-sw-filler2";
+    const key = `${callSid}:t1`;
+    createPendingTurn({ key, callSid, from: "+15550001111", said: "waiting" });
+
+    const res = await post(
+      `/speech-wait?key=${encodeURIComponent(key)}&poll=2`,
+      "",
+      port
+    );
+    assert.strictEqual(res.status, 200);
+    assert.match(res.body, /<Say/);
+    assert.doesNotMatch(res.body, /<Pause/);
+    assert.match(res.body, /speech-wait/);
+    assert.match(res.body, /poll=3/);
+
+    deleteTurn(key);
+  });
+
+  it("POST /speech-wait with pending turn + poll=3 → silent Pause + Redirect (filler exhausted)", async () => {
+    const callSid = "CA-sw-filler3";
+    const key = `${callSid}:t1`;
+    createPendingTurn({ key, callSid, from: "+15550001111", said: "waiting" });
+
+    const res = await post(
+      `/speech-wait?key=${encodeURIComponent(key)}&poll=3`,
+      "",
+      port
+    );
+    assert.strictEqual(res.status, 200);
+    assert.match(res.body, /<Pause/);
+    assert.match(res.body, /speech-wait/);
+    assert.match(res.body, /poll=4/);
 
     deleteTurn(key);
   });

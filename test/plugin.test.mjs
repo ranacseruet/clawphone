@@ -90,5 +90,7 @@ describe("fromPluginConfig", () => {
     assert.ok(cfg.THINKING_PHRASES.length > 0);
     assert.strictEqual(typeof cfg.getRandomThinkingPhrase, "function");
     assert.ok(cfg.THINKING_PHRASES.includes(cfg.getRandomThinkingPhrase()));
+    assert.ok(Array.isArray(cfg.POLL_FILLER_PHRASES));
+    assert.ok(cfg.POLL_FILLER_PHRASES.length > 0);
   });
 });
