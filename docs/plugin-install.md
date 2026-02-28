@@ -132,6 +132,10 @@ openclaw config set plugins.entries.clawphone.config.rateLimitWindowMs 60000
 
 # Optional — voice polling interval in seconds (default: 1; Twilio minimum: 1)
 openclaw config set plugins.entries.clawphone.config.speechWaitPauseSeconds 1
+
+# Optional — Twilio STT model (default: phone_call)
+# Options: phone_call, googlev2_telephony, googlev2_telephony_short, default
+openclaw config set plugins.entries.clawphone.config.twilioSttModel '"phone_call"'
 ```
 
 ---
