@@ -30,6 +30,27 @@ describe("plugin manifest", () => {
   });
 });
 
+describe("plugin lifecycle", () => {
+  it("start() resolves with a stop function and stop() closes cleanly", async () => {
+    let captured = /** @type {{ id?: string, name?: string, start?: Function } | null} */ (null);
+    const fakeApi = {
+      registerService(/** @type {{ id?: string, name?: string, start?: Function }} */ config) {
+        captured = config;
+      },
+    };
+
+    plugin.register(fakeApi);
+    assert.ok(captured, "registerService should have been called");
+    assert.ok(captured.start, "start should be a function");
+
+    const result = await captured.start({ port: 0, twilioAccountSid: "", twilioAuthToken: "" });
+    assert.ok(result, "start() should return an object");
+    assert.strictEqual(typeof result.stop, "function", "result should have a stop function");
+
+    await assert.doesNotReject(result.stop());
+  });
+});
+
 describe("fromPluginConfig", () => {
   it("maps camelCase plugin config to SCREAMING_SNAKE_CASE shape", () => {
     const cfg = fromPluginConfig({
