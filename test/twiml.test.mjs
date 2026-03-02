@@ -12,7 +12,7 @@ import {
   pauseAndRedirect,
   fillerAndRedirect,
 } from "../lib/twiml.mjs";
-import { TWILIO_VOICE, GATHER_TIMEOUT_SECONDS, GATHER_FOLLOWUP_TIMEOUT_SECONDS, SPEECH_WAIT_PAUSE_SECONDS } from "../lib/config.mjs";
+import { TWILIO_VOICE, TWILIO_STT_MODEL, GATHER_TIMEOUT_SECONDS, GATHER_FOLLOWUP_TIMEOUT_SECONDS, SPEECH_WAIT_PAUSE_SECONDS } from "../lib/config.mjs";
 
 describe("TwiML builders", () => {
   describe("say", () => {
@@ -61,7 +61,7 @@ describe("TwiML builders", () => {
       assert.ok(result.includes('<Gather input="speech"'));
       assert.ok(result.includes('action="/speech"'));
       assert.ok(result.includes(`timeout="${GATHER_TIMEOUT_SECONDS}"`));
-      assert.ok(result.includes('speechModel="phone_call"'));
+      assert.ok(result.includes(`speechModel="${TWILIO_STT_MODEL}"`));
       assert.ok(result.includes(">Beep.</Say>"));
       assert.ok(result.includes("I did not hear anything"));
       assert.ok(result.includes('<Redirect method="POST">/voice</Redirect>'));
@@ -80,7 +80,7 @@ describe("TwiML builders", () => {
       assert.ok(result.includes(">Here is my answer</Say>"));
       assert.ok(result.includes('<Gather input="speech"'));
       assert.ok(result.includes(`timeout="${GATHER_FOLLOWUP_TIMEOUT_SECONDS}"`));
-      assert.ok(result.includes('speechModel="phone_call"'));
+      assert.ok(result.includes(`speechModel="${TWILIO_STT_MODEL}"`));
       assert.ok(result.includes("Say your next message"));
       // ' does not need escaping in XML element content (only in attributes)
       assert.ok(result.includes("I didn't catch anything"));
