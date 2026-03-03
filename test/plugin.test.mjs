@@ -24,6 +24,14 @@ describe("plugin manifest", () => {
     assert.strictEqual(typeof plugin.register, "function");
   });
 
+  it("uiHints has no orphaned keys (every key must exist in configSchema.properties)", () => {
+    const pluginJson = JSON.parse(readFileSync(join(__dirname, "..", "openclaw.plugin.json"), "utf8"));
+    const schemaKeys = new Set(Object.keys(pluginJson.configSchema.properties));
+    for (const key of Object.keys(pluginJson.uiHints)) {
+      assert.ok(schemaKeys.has(key), `uiHints key '${key}' is not in configSchema.properties`);
+    }
+  });
+
   it("register calls api.registerService with a name and start function", () => {
     let captured = /** @type {{ id?: string, name?: string, start?: Function } | null} */ (null);
     plugin.register({
