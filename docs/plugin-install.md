@@ -93,9 +93,21 @@ openclaw config set plugins.allow '["clawphone"]'
 
 ## 3. Configure the plugin
 
-All configuration is set via `openclaw config set`. String values must be JSON-quoted (wrapped in single-quotes containing double-quotes).
+There are three ways to configure the plugin — pick whichever suits your workflow:
 
-### Required
+| Method | When to use |
+|---|---|
+| [CLI](#option-a-cli-recommended) | Quickest for initial setup or one-off changes |
+| [UI](#option-b-openclaw-ui) | Convenient if you prefer a visual interface |
+| [JSON file](#option-c-edit-the-json-config-directly) | Bulk edits, scripted deployments, or copying config between machines |
+
+---
+
+### Option A: CLI (recommended)
+
+`openclaw config set` writes individual values. String values must be JSON-quoted (wrapped in single-quotes containing double-quotes).
+
+#### Required
 
 Three values must be set before the plugin will work:
 
@@ -108,7 +120,7 @@ openclaw config set plugins.entries.clawphone.config.twilioAuthToken '"your_auth
 openclaw config set plugins.entries.clawphone.config.publicBaseUrl '"https://your-tunnel.example.com"'
 ```
 
-### Optional
+#### Optional
 
 Everything else has a sensible default and can be set as needed:
 
@@ -145,6 +157,63 @@ openclaw config set plugins.entries.clawphone.config.speechWaitPauseSeconds 1
 # Options: phone_call, googlev2_telephony, googlev2_telephony_short, default
 openclaw config set plugins.entries.clawphone.config.twilioSttModel '"phone_call"'
 ```
+
+---
+
+### Option B: OpenClaw UI
+
+The OpenClaw gateway exposes a web UI where plugin settings can be edited without the CLI. Navigate to the plugin settings page, find **clawphone**, and fill in the fields — the UI labels map directly to the config keys above (e.g. "Twilio Account SID" → `twilioAccountSid`).
+
+> **Note:** UI-based plugin configuration may not be fully functional in all OpenClaw versions. If settings don't persist after saving, use the CLI or JSON method instead.
+
+---
+
+### Option C: Edit the JSON config directly
+
+All OpenClaw config lives in `~/.openclaw/openclaw.json`. You can edit it directly — useful for bulk setup or copying config between machines.
+
+**Stop the gateway before editing, then restart it after:**
+
+```bash
+openclaw gateway stop
+# edit the file
+openclaw gateway install
+```
+
+Locate (or add) the `plugins.entries.clawphone` block and set your values:
+
+```json
+{
+  "plugins": {
+    "allow": ["clawphone"],
+    "entries": {
+      "clawphone": {
+        "config": {
+          "twilioAccountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "twilioAuthToken": "your_auth_token_here",
+          "publicBaseUrl": "https://your-tunnel.example.com",
+
+          "allowFrom": ["+15550001111", "+15550002222"],
+          "twilioSmsFrom": "+15550003333",
+          "discordLogChannelId": "1234567890123456789",
+          "callerName": "Alice",
+          "agentName": "Bot",
+          "greetingText": "You are connected. Say something after the beep.",
+          "port": 8787,
+          "openclawSessionId": "phone",
+          "openclawAgentId": "phone",
+          "rateLimitMax": 20,
+          "rateLimitWindowMs": 60000,
+          "speechWaitPauseSeconds": 1,
+          "twilioSttModel": "phone_call"
+        }
+      }
+    }
+  }
+}
+```
+
+Only include the keys you want to override — omitted keys use their defaults.
 
 ---
 
