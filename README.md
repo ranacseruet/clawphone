@@ -142,7 +142,7 @@ See **[docs/best-practices.md](docs/best-practices.md)** for guidance on model s
 ## Testing
 
 ```bash
-npm test                        # run all tests (166 tests)
+npm test                        # run all tests
 node --test test/sms.test.mjs   # run a single file
 ```
 
