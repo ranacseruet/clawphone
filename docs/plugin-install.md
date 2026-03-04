@@ -172,14 +172,6 @@ The OpenClaw gateway exposes a web UI where plugin settings can be edited withou
 
 All OpenClaw config lives in `~/.openclaw/openclaw.json`. You can edit it directly — useful for bulk setup or copying config between machines.
 
-**Stop the gateway before editing, then restart it after:**
-
-```bash
-openclaw gateway stop
-# edit the file
-openclaw gateway install
-```
-
 Locate (or add) the `plugins.entries.clawphone` block and set your values:
 
 ```json
