@@ -49,9 +49,9 @@ describe("config", () => {
       assert.ok(RATE_LIMIT_WINDOW_MS > 0);
     });
 
-    it("has SPEECH_WAIT_PAUSE_SECONDS defaulting to 2", () => {
+    it("has SPEECH_WAIT_PAUSE_SECONDS as a positive number", () => {
       assert.strictEqual(typeof SPEECH_WAIT_PAUSE_SECONDS, "number");
-      assert.strictEqual(SPEECH_WAIT_PAUSE_SECONDS, 2);
+      assert.ok(SPEECH_WAIT_PAUSE_SECONDS > 0);
     });
 
     it("has TWILIO_STT_MODEL defaulting to phone_call", () => {
@@ -61,9 +61,9 @@ describe("config", () => {
   });
 
   describe("fromPluginConfig — SPEECH_WAIT_PAUSE_SECONDS", () => {
-    it("defaults to 2 when not provided", () => {
+    it("defaults to 1 when not provided", () => {
       const cfg = fromPluginConfig({});
-      assert.strictEqual(cfg.SPEECH_WAIT_PAUSE_SECONDS, 2);
+      assert.strictEqual(cfg.SPEECH_WAIT_PAUSE_SECONDS, 1);
     });
 
     it("maps speechWaitPauseSeconds from plugin config", () => {
