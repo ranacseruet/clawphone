@@ -12,15 +12,11 @@ clawphone can run as an **OpenClaw plugin**, which means the gateway process hos
 
 ## Recommended approach
 
-Clone, install, configure, and start — the full flow in one place:
+Install from npm, configure, and start — the full flow in one place:
 
 ```bash
-# Clone the repo
-git clone https://github.com/ranacseruet/clawphone.git
-cd clawphone && npm install
-
 # Install as an OpenClaw plugin
-openclaw plugins install .
+openclaw plugins install @ranacseruet/clawphone
 
 # Trust the plugin
 openclaw config set plugins.allow '["clawphone"]'
@@ -38,9 +34,11 @@ openclaw plugins list                  # should show "loaded"
 curl http://localhost:8787/health      # → {"ok":true,"version":"...","uptime":42,"activeTurns":0,"twilioConfigured":true}
 ```
 
-For local development, replace `openclaw plugins install .` with:
+For local development, use a symlink to a local clone instead:
 
 ```bash
+git clone https://github.com/ranacseruet/clawphone.git
+cd clawphone && npm install
 openclaw plugins install --link .   # symlink — code changes are picked up immediately
 ```
 
@@ -52,7 +50,7 @@ See the sections below for the full config reference, Twilio webhook setup, and 
 
 `openclaw plugins install` accepts a **local path** or an **npm registry package name**. GitHub URLs and shorthands are not supported.
 
-### From npm (when published)
+### From npm
 
 ```bash
 openclaw plugins install @ranacseruet/clawphone
