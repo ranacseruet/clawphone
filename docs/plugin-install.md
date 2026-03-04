@@ -93,45 +93,55 @@ openclaw config set plugins.allow '["clawphone"]'
 
 ## 3. Configure the plugin
 
-All configuration is set via `openclaw config set`. String values must be JSON-quoted (wrapped in single-quotes containing double-quotes):
+All configuration is set via `openclaw config set`. String values must be JSON-quoted (wrapped in single-quotes containing double-quotes).
+
+### Required
+
+Three values must be set before the plugin will work:
 
 ```bash
-# Required — Twilio credentials
+# Twilio credentials
 openclaw config set plugins.entries.clawphone.config.twilioAccountSid '"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
 openclaw config set plugins.entries.clawphone.config.twilioAuthToken '"your_auth_token_here"'
 
-# Required — public URL of this server as Twilio sees it (your tunnel URL)
+# Public URL of this server as Twilio sees it (your tunnel URL)
 openclaw config set plugins.entries.clawphone.config.publicBaseUrl '"https://your-tunnel.example.com"'
+```
 
-# Optional — phone number allowlist (E.164 format); omit to allow all numbers
+### Optional
+
+Everything else has a sensible default and can be set as needed:
+
+```bash
+# Phone number allowlist (E.164 format); omit to allow all numbers
 openclaw config set plugins.entries.clawphone.config.allowFrom '["+15550001111","+15550002222"]'
 
-# Optional — override the outbound SMS sender number
+# Override the outbound SMS sender number
 openclaw config set plugins.entries.clawphone.config.twilioSmsFrom '"+15550003333"'
 
-# Optional — Discord channel ID for call/SMS logging
+# Discord channel ID for call/SMS logging
 openclaw config set plugins.entries.clawphone.config.discordLogChannelId '"1234567890123456789"'
 
-# Optional — display names (used in Discord logs and agent prompt framing)
+# Display names (used in Discord logs and agent prompt framing)
 openclaw config set plugins.entries.clawphone.config.callerName '"Alice"'
 openclaw config set plugins.entries.clawphone.config.agentName '"Bot"'
 openclaw config set plugins.entries.clawphone.config.greetingText '"You are connected. Say something after the beep."'
 
-# Optional — server port (default: 8787)
+# Server port (default: 8787)
 openclaw config set plugins.entries.clawphone.config.port 8787
 
-# Optional — OpenClaw session and agent IDs (defaults match the "phone" agent)
+# OpenClaw session and agent IDs (defaults match the "phone" agent)
 openclaw config set plugins.entries.clawphone.config.openclawSessionId '"phone"'
 openclaw config set plugins.entries.clawphone.config.openclawAgentId '"phone"'
 
-# Optional — rate limiting (per-number sliding window; 0 disables)
+# Rate limiting (per-number sliding window; 0 disables)
 openclaw config set plugins.entries.clawphone.config.rateLimitMax 20
 openclaw config set plugins.entries.clawphone.config.rateLimitWindowMs 60000
 
-# Optional — voice polling interval in seconds (default: 1; Twilio minimum: 1)
+# Voice polling interval in seconds (default: 1; Twilio minimum: 1)
 openclaw config set plugins.entries.clawphone.config.speechWaitPauseSeconds 1
 
-# Optional — Twilio STT model (default: phone_call)
+# Twilio STT model (default: phone_call)
 # Options: phone_call, googlev2_telephony, googlev2_telephony_short, default
 openclaw config set plugins.entries.clawphone.config.twilioSttModel '"phone_call"'
 ```
