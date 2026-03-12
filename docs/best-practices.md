@@ -39,6 +39,16 @@ Leave `ALLOW_FROM` blank only in development. In production, set it to your own 
 
 Signature validation alone does not stop a real call from an unknown number. `ALLOW_FROM` alone does not stop someone from hitting your webhook URL directly. The server emits a startup warning if either is unconfigured.
 
+## Use plugin mode to eliminate subprocess startup latency
+
+In standalone mode, every agent turn spawns a new `openclaw agent` child process. Node.js startup and CLI module loading add roughly **200–400 ms of overhead per turn** that a caller experiences as extra dead air before the agent even begins thinking.
+
+Plugin mode runs the agent in-process via `runEmbeddedPiAgent`, so that overhead drops to zero. For a typical voice turn, switching from standalone to plugin mode saves around 300 ms with no code changes and no tuning required.
+
+**Recommendation:** use plugin mode for personal or low-traffic deployments where you are already running OpenClaw. See [docs/plugin-install.md](plugin-install.md) for setup instructions.
+
+If you must use standalone mode (e.g. you are not running OpenClaw), pair it with a fast model (see above) to minimise the combined model-latency + subprocess-startup cost.
+
 ## Set `OPENCLAW_MAX_CONCURRENT=1` for personal use
 
 The default (`10`) is sized for multi-user deployments. For a single-person assistant, set this to `1`. It makes concurrency behaviour predictable and prevents two overlapping agent calls if something unexpected re-enters `/speech`.
