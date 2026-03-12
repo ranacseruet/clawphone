@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Plugin mode now uses a unified session key (`OPENCLAW_PHONE_SESSION_ID`) instead of
+  mode-prefixed keys (`voice:<id>` / `sms:<id>`). Voice and SMS now share a single
+  conversation history in plugin mode, matching standalone behaviour. **Upgrading
+  plugin-mode deployments will orphan history stored under the old prefixed keys** —
+  start a fresh session or rename the files in the agent's session store if you want
+  to preserve existing history.
+
 ## [1.1.0] - 2026-03-04
 
 ### Added
