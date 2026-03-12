@@ -109,7 +109,7 @@ describe("openclawReply — plugin path", () => {
     assert.strictEqual(mockRun.mock.calls.length, 0);
   });
 
-  it("scopes session key by mode (voice vs sms)", async () => {
+  it("uses the same session key for voice and sms (shared history)", async () => {
     const voiceDeps = makeCoreDeps("voice reply");
     const smsDeps = makeCoreDeps("sms reply");
     const api = makeApi();
@@ -119,12 +119,12 @@ describe("openclawReply — plugin path", () => {
 
     const voiceCalls = /** @type {any[]} */ (voiceDeps.runEmbeddedPiAgent.mock.calls);
     const smsCalls   = /** @type {any[]} */ (smsDeps.runEmbeddedPiAgent.mock.calls);
-    const voiceCall  = voiceCalls[0].arguments[0];
-    const smsCall    = smsCalls[0].arguments[0];
+    const voiceKey   = voiceCalls[0].arguments[0].sessionKey;
+    const smsKey     = smsCalls[0].arguments[0].sessionKey;
 
-    assert.ok(voiceCall.sessionKey.startsWith("voice:"), `expected voice: prefix, got ${voiceCall.sessionKey}`);
-    assert.ok(smsCall.sessionKey.startsWith("sms:"),   `expected sms: prefix, got ${smsCall.sessionKey}`);
-    assert.notStrictEqual(voiceCall.sessionKey, smsCall.sessionKey);
+    assert.strictEqual(voiceKey, smsKey, "voice and SMS must share the same session key");
+    assert.ok(!voiceKey.startsWith("voice:"), `session key must not have mode prefix, got ${voiceKey}`);
+    assert.ok(!smsKey.startsWith("sms:"),     `session key must not have mode prefix, got ${smsKey}`);
   });
 
   it("passes correct prompt framing for voice mode to runEmbeddedPiAgent", async () => {
