@@ -11,22 +11,22 @@ clawphone currently couples tightly to a single agent backend: [OpenClaw](https:
 
 As interest grows in connecting different LLM and agentic systems through a phone/SMS interface, the tight coupling becomes a constraint. Users may want to use direct LLM APIs (Anthropic, OpenAI, etc.), self-hosted models (Ollama, llama.cpp), or custom internal agents — without being locked into OpenClaw.
 
-At the same time, supporting multiple telephony providers (Twilio alternatives) was considered and **explicitly deferred**. The wire protocols for call control (TwiML, NCCO, etc.) differ fundamentally enough that abstracting them would be a near-rewrite. Twilio remains the only supported phone provider. The adapter pattern applies to the agent side only.
+Supporting multiple telephony providers (Twilio alternatives) was considered and explicitly deferred. The wire protocols for call control (TwiML, NCCO, WebSocket-based, SIP) differ at a fundamental level — not just field names. Abstracting them would require rewriting the voice polling loop per-provider. The adapter pattern applies to the agent side only.
 
 ---
 
 ## Decision
 
-Introduce a formal `AgentAdapter` interface and refactor `lib/agent.mjs` into a factory/dispatcher. OpenClaw logic moves into `lib/agents/openclaw.mjs` as the first concrete adapter. A new `AGENT_PROVIDER` config field selects the active adapter at startup.
+Introduce a formal `AgentAdapter` interface. `lib/agent.mjs` becomes a factory/dispatcher; OpenClaw logic moves into `lib/agents/openclaw.mjs` as the first concrete adapter. A new `AGENT_PROVIDER` config field selects the active adapter at startup.
 
-### Adapter interface
+The adapter contract is a single `reply` method that takes a full conversation history and returns a reply string:
 
 ```js
 /**
  * @typedef {{ role: 'user'|'assistant', content: string }} AgentMessage
  *
  * @typedef {object} AgentReplyOptions
- * @property {AgentMessage[]} messages   - Full conversation history; last entry is current turn
+ * @property {AgentMessage[]} messages   - Full history; last entry is the current turn
  * @property {'voice'|'sms'}  [mode]
  * @property {string}         [callerName]
  *
@@ -35,65 +35,25 @@ Introduce a formal `AgentAdapter` interface and refactor `lib/agent.mjs` into a 
  */
 ```
 
-### Factory
-
-```js
-// lib/agent.mjs
-export function createAgent({ api, config }) {
-  const provider = config.AGENT_PROVIDER ?? "openclaw";
-  if (provider === "openclaw") return createOpenClawAdapter({ api });
-  throw new Error(`Unknown AGENT_PROVIDER: ${provider}`);
-}
-```
-
-### Conversation history ownership
-
-Adapters receive the full message history on each call (`AgentMessage[]`). Callers are responsible for maintaining the session store.
-
-The OpenClaw adapter is an explicit exception: it ignores all messages except the last, because OpenClaw manages its own conversation history internally (session files on disk). Future adapters (direct LLM APIs) will consume the full history on each call, requiring clawphone to maintain a lightweight in-memory session store keyed by phone number or `CallSid`. That session store is **deferred** until the first non-OpenClaw adapter is introduced.
+**Conversation history ownership:** callers own the session store and pass the full message history on each call. The OpenClaw adapter is a documented exception — it ignores all but the last message because OpenClaw manages its own history internally. A lightweight in-memory session store for direct LLM adapters is deferred until the first non-OpenClaw adapter is introduced.
 
 ---
 
 ## Considered alternatives
 
-### Keep everything in lib/agent.mjs, add a switch statement
+**Keep everything in `lib/agent.mjs`, add a switch statement.** Simple in the short term, but `agent.mjs` would grow a new branch per provider and become hard to read and test in isolation. Rejected.
 
-Simple in the short term, but `agent.mjs` would grow a new branch per provider and become hard to read and test in isolation. Rejected in favour of the adapter pattern.
+**Support multiple telephony providers in the same pass.** Deferred — the call-control models differ fundamentally enough that a single abstraction would be a near-rewrite. Twilio stays as the only phone provider for now.
 
-### Support multiple phone providers in the same pass
-
-Considered briefly. Deferred because telephony call-control protocols (TwiML, NCCO, WebSocket-based, SIP) differ at a fundamental level — not just field names. Abstracting them would require rewriting the voice polling loop per-provider. Twilio is the dominant player and the effort/benefit ratio does not justify the scope expansion at this time.
-
-### Use a class hierarchy for adapters
-
-Unnecessary for an interface this small. A plain object returned from a factory function is sufficient and easier to test.
+**Use a class hierarchy for adapters.** Unnecessary for an interface this small. A plain object returned from a factory function is sufficient and easier to test.
 
 ---
 
 ## Consequences
 
-**Positive**
-- Users can connect any LLM or agent system via a simple HTTP endpoint (`HttpAdapter`, planned) without clawphone needing a dedicated SDK per provider.
-- The OpenClaw adapter becomes an isolated, independently testable unit.
-- `lib/agent.mjs` shrinks to a thin dispatcher with no provider-specific logic.
-- Adding a new adapter in the future requires only a new file and a new case in `createAgent()`.
-
-**Negative / trade-offs**
-- Dependency injection moves from per-call params (current) to adapter construction time, requiring minor test refactors.
-- The OpenClaw adapter's session model (externally managed) diverges from the `messages[]` contract. This is a known, documented exception — not a bug.
-- Conversation history management (for direct LLM adapters) adds new in-memory state to clawphone. Scope and key design for that store is deferred.
-
----
-
-## Implementation
-
-Tracked as GitHub issues #48–#53 on the Kanban milestone:
-
-| Issue | Work | Order |
-|---|---|---|
-| [#48](https://github.com/ranacseruet/clawphone/issues/48) | Define `AgentAdapter` typedefs | 1 |
-| [#49](https://github.com/ranacseruet/clawphone/issues/49) | Extract OpenClaw adapter to `lib/agents/openclaw.mjs` | 2 (parallel with #50) |
-| [#50](https://github.com/ranacseruet/clawphone/issues/50) | Add `AGENT_PROVIDER` config field | 2 (parallel with #49) |
-| [#51](https://github.com/ranacseruet/clawphone/issues/51) | Refactor `lib/agent.mjs` as factory/dispatcher | 3 |
-| [#52](https://github.com/ranacseruet/clawphone/issues/52) | Update `lib/http-server.mjs` to use `createAgent()` | 4 (parallel with #53) |
-| [#53](https://github.com/ranacseruet/clawphone/issues/53) | Update `test/agent.test.mjs` for adapter structure | 4 (parallel with #52) |
+- `lib/agent.mjs` contains no provider-specific logic. Adding a new adapter requires only a new file and a new case in `createAgent()`.
+- The OpenClaw adapter is an isolated, independently testable unit.
+- Users can reach any LLM or agent via a generic HTTP adapter without clawphone needing a dedicated SDK per provider.
+- Dependency injection moves from per-call params to adapter construction time, requiring minor test refactors.
+- The OpenClaw adapter's externally-managed session model is a known divergence from the `messages[]` contract, not a bug.
+- Conversation history management for direct LLM adapters will introduce new in-memory state; scope and key design are deferred.
