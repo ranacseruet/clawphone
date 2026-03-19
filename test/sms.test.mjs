@@ -81,6 +81,28 @@ test("handleIncomingSms: exact command replies bypass the conversational path", 
   assert.equal(openclawCalled, false);
 });
 
+test("handleIncomingSms: exact command replies are not truncated by the conversational SMS cap", async () => {
+  const commandReply = "This command reply should stay intact even when the normal SMS cap is tiny.";
+  const res = await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "/status" },
+    deps: {
+      openclawCommandReply: async () => ({
+        handled: true,
+        reply: commandReply,
+      }),
+      openclawReply: async () => "chat reply",
+    },
+    maxChars: 12,
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+
+  assert.equal(res.didAck, false);
+  assert.equal(res.startAsync, null);
+  assert.match(res.twiml, new RegExp(commandReply.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(res.twiml, /…/);
+});
+
 test("handleIncomingSms: unhandled slash commands fall back to normal conversation", async () => {
   const res = await handleIncomingSms({
     form: { From: "+15550000001", To: "+15550000002", Body: "/not-a-command but chatty" },
