@@ -33,20 +33,22 @@ describe("plugin manifest", () => {
   });
 
   it("register calls api.registerService with a name and start function", () => {
-    let captured = /** @type {{ id?: string, name?: string, start?: Function } | null} */ (null);
+    let captured = /** @type {{ id?: string, name?: string, start?: Function, stop?: Function } | null} */ (null);
     plugin.register({
       registerService(config) { captured = config; },
     });
     assert.ok(captured, "registerService should have been called");
     assert.strictEqual(captured.name, "clawphone");
     assert.strictEqual(typeof captured.start, "function");
+    assert.strictEqual(typeof captured.stop, "function");
   });
 });
 
 describe("plugin lifecycle", () => {
-  it("start() resolves with a stop function and stop() closes cleanly", async () => {
-    let captured = /** @type {{ id?: string, name?: string, start?: Function } | null} */ (null);
+  it("start() uses api.pluginConfig and stop() closes cleanly", async () => {
+    let captured = /** @type {{ id?: string, name?: string, start?: Function, stop?: Function } | null} */ (null);
     const fakeApi = {
+      pluginConfig: { port: 0, twilioAccountSid: "", twilioAuthToken: "" },
       registerService(/** @type {{ id?: string, name?: string, start?: Function }} */ config) {
         captured = config;
       },
@@ -55,12 +57,10 @@ describe("plugin lifecycle", () => {
     plugin.register(fakeApi);
     assert.ok(captured, "registerService should have been called");
     assert.ok(captured.start, "start should be a function");
+    assert.ok(captured.stop, "stop should be a function");
 
-    const result = await captured.start({ port: 0, twilioAccountSid: "", twilioAuthToken: "" });
-    assert.ok(result, "start() should return an object");
-    assert.strictEqual(typeof result.stop, "function", "result should have a stop function");
-
-    await assert.doesNotReject(result.stop());
+    await assert.doesNotReject(captured.start({}));
+    await assert.doesNotReject(captured.stop({}));
   });
 });
 
