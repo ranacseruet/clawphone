@@ -57,6 +57,68 @@ test("handleIncomingSms: fast path returns full reply and no async", async () =>
   assert.equal(calls.send, 0);
 });
 
+test("handleIncomingSms: exact command replies bypass the conversational path", async () => {
+  let openclawCalled = false;
+  const res = await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "/status" },
+    deps: {
+      openclawCommandReply: async ({ userText }) => ({
+        handled: true,
+        reply: `command:${userText}`,
+      }),
+      openclawReply: async () => {
+        openclawCalled = true;
+        return "chat reply";
+      },
+    },
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+
+  assert.equal(res.didAck, false);
+  assert.equal(res.startAsync, null);
+  assert.match(res.twiml, /command:\/status/);
+  assert.equal(openclawCalled, false);
+});
+
+test("handleIncomingSms: exact command replies are not truncated by the conversational SMS cap", async () => {
+  const commandReply = "This command reply should stay intact even when the normal SMS cap is tiny.";
+  const res = await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "/status" },
+    deps: {
+      openclawCommandReply: async () => ({
+        handled: true,
+        reply: commandReply,
+      }),
+      openclawReply: async () => "chat reply",
+    },
+    maxChars: 12,
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+
+  assert.equal(res.didAck, false);
+  assert.equal(res.startAsync, null);
+  assert.match(res.twiml, new RegExp(commandReply.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(res.twiml, /…/);
+});
+
+test("handleIncomingSms: unhandled slash commands fall back to normal conversation", async () => {
+  const res = await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "/not-a-command but chatty" },
+    deps: {
+      openclawCommandReply: async () => ({ handled: false }),
+      openclawReply: async () => "chat reply",
+    },
+    fastTimeoutMs: 50,
+    log: () => {},
+  });
+
+  assert.equal(res.didAck, false);
+  assert.equal(res.startAsync, null);
+  assert.match(res.twiml, /chat reply/);
+});
+
 test("handleIncomingSms: slow path acks and sends async follow-up", async () => {
   const calls = { openclaw: 0, send: 0 };
 

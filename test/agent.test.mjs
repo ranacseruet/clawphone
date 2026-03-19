@@ -8,17 +8,21 @@ import { OPENCLAW_MAX_CONCURRENT, DISCORD_LOG_CHANNEL_ID } from "../lib/config.m
 
 // ─── Helpers for plugin-path tests ───────────────────────────────────────────
 
-function makeCoreDeps(replyText = "Plugin reply") {
-  const store = {};
+function makeCoreDeps(replyText = "Plugin reply", initialStore = {}) {
+  const store = structuredClone(initialStore);
   return {
-    resolveStorePath: () => "/tmp/test-store.json",
-    resolveAgentDir: () => "/tmp/test-agent",
-    resolveAgentWorkspaceDir: () => "/tmp/test-workspace",
+    resolveStorePath: mock.fn(() => "/tmp/test-store.json"),
+    resolveAgentDir: mock.fn(() => "/tmp/test-agent"),
+    resolveAgentWorkspaceDir: mock.fn(() => "/tmp/test-workspace"),
     ensureAgentWorkspace: async () => {},
-    loadSessionStore: () => ({ ...store }),
-    saveSessionStore: async (path, data) => { Object.assign(store, data); },
-    resolveSessionFilePath: () => "/tmp/test-session.jsonl",
-    resolveAgentTimeoutMs: () => 30000,
+    loadSessionStore: () => structuredClone(store),
+    saveSessionStore: async (path, data) => {
+      for (const key of Object.keys(store)) delete store[key];
+      Object.assign(store, structuredClone(data));
+    },
+    resolveSessionFilePath: mock.fn(() => "/tmp/test-session.jsonl"),
+    resolveAgentTimeoutMs: mock.fn(() => 30000),
+    resolveThinkingDefault: mock.fn(() => "low"),
     runEmbeddedPiAgent: mock.fn(async () => ({
       payloads: [{ text: replyText, isError: false }],
       meta: { sessionId: crypto.randomUUID(), provider: "anthropic", model: "claude" },
@@ -26,10 +30,11 @@ function makeCoreDeps(replyText = "Plugin reply") {
   };
 }
 
-function makeApi(config = {}) {
+function makeApi(config = {}, pluginConfig = {}) {
   const sent = [];
   return {
     config: { session: { store: null }, ...config },
+    pluginConfig,
     runtime: {
       channel: {
         discord: {
@@ -109,7 +114,42 @@ describe("openclawReply — plugin path", () => {
     assert.strictEqual(mockRun.mock.calls.length, 0);
   });
 
-  it("uses the same session key for voice and sms (shared history)", async () => {
+  it("uses plugin config for agent, session, provider, model, and SMS prompt limits", async () => {
+    const deps = makeCoreDeps("Configured reply");
+    const api = makeApi(
+      {
+        agents: {
+          defaults: {
+            model: { primary: "openai-codex/gpt-5.4" },
+          },
+        },
+      },
+      {
+        openclawAgentId: "my-agent",
+        openclawSessionId: "my-session",
+        smsMaxChars: 160,
+      },
+    );
+
+    await openclawReply({ userText: "What time is it?", mode: "sms", _api: api, _coreDeps: deps });
+
+    const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
+    assert.strictEqual(call.agentId, "my-agent");
+    assert.strictEqual(call.sessionKey, "sms:my-session");
+    assert.strictEqual(call.provider, "openai-codex");
+    assert.strictEqual(call.model, "gpt-5.4");
+    assert.ok(call.prompt.includes("<= 160 characters"), `unexpected prompt: ${call.prompt}`);
+    assert.strictEqual(
+      /** @type {any[]} */ (deps.resolveStorePath.mock.calls)[0].arguments[1].agentId,
+      "my-agent",
+    );
+    assert.strictEqual(
+      /** @type {any[]} */ (deps.resolveAgentDir.mock.calls)[0].arguments[1],
+      "my-agent",
+    );
+  });
+
+  it("uses distinct mode-prefixed session keys for voice and sms", async () => {
     const voiceDeps = makeCoreDeps("voice reply");
     const smsDeps = makeCoreDeps("sms reply");
     const api = makeApi();
@@ -122,9 +162,47 @@ describe("openclawReply — plugin path", () => {
     const voiceKey   = voiceCalls[0].arguments[0].sessionKey;
     const smsKey     = smsCalls[0].arguments[0].sessionKey;
 
-    assert.strictEqual(voiceKey, smsKey, "voice and SMS must share the same session key");
-    assert.ok(!voiceKey.startsWith("voice:"), `session key must not have mode prefix, got ${voiceKey}`);
-    assert.ok(!smsKey.startsWith("sms:"),     `session key must not have mode prefix, got ${smsKey}`);
+    assert.strictEqual(voiceKey, "voice:phone");
+    assert.strictEqual(smsKey, "sms:phone");
+    assert.notStrictEqual(voiceKey, smsKey, "voice and SMS should not share the same session key");
+  });
+
+  it("reuses stored provider, model, thinking, verbose, and auth overrides", async () => {
+    const deps = makeCoreDeps("Override reply", {
+      "sms:my-session": {
+        sessionId: "session-123",
+        providerOverride: "azure-openai-responses",
+        modelOverride: "gpt-5.3-codex-spark",
+        thinkingLevel: "high",
+        verboseLevel: "on",
+        authProfileOverride: "azure-openai-responses:default",
+        authProfileOverrideSource: "user",
+      },
+    });
+    const api = makeApi(
+      {
+        agents: {
+          defaults: {
+            model: { primary: "openai-codex/gpt-5.4" },
+          },
+        },
+      },
+      {
+        openclawSessionId: "my-session",
+      },
+    );
+
+    await openclawReply({ userText: "hello", mode: "sms", _api: api, _coreDeps: deps });
+
+    const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
+    assert.strictEqual(call.sessionId, "session-123");
+    assert.strictEqual(call.sessionKey, "sms:my-session");
+    assert.strictEqual(call.provider, "azure-openai-responses");
+    assert.strictEqual(call.model, "gpt-5.3-codex-spark");
+    assert.strictEqual(call.thinkLevel, "high");
+    assert.strictEqual(call.verboseLevel, "on");
+    assert.strictEqual(call.authProfileId, "azure-openai-responses:default");
+    assert.strictEqual(call.authProfileIdSource, "user");
   });
 
   it("passes correct prompt framing for voice mode to runEmbeddedPiAgent", async () => {
@@ -178,6 +256,16 @@ describe("openclawReply — plugin path", () => {
 });
 
 describe("discordLog — plugin path", () => {
+  it("uses discordLogChannelId from plugin config", async () => {
+    const api = makeApi({}, { discordLogChannelId: "chan123" });
+
+    await discordLog({ text: "test log", _api: api });
+
+    assert.deepStrictEqual(api._sent, [
+      { to: "chan123", text: "test log", opts: { accountId: "default" } },
+    ]);
+  });
+
   it("calls sendMessageDiscord when _api is provided (not CLI spawn)", async () => {
     const api = makeApi();
     const mockRun = mock.fn(async () => ({ stdout: "", stderr: "" }));
