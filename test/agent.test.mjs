@@ -11,14 +11,14 @@ import { OPENCLAW_MAX_CONCURRENT, DISCORD_LOG_CHANNEL_ID } from "../lib/config.m
 function makeCoreDeps(replyText = "Plugin reply") {
   const store = {};
   return {
-    resolveStorePath: () => "/tmp/test-store.json",
-    resolveAgentDir: () => "/tmp/test-agent",
-    resolveAgentWorkspaceDir: () => "/tmp/test-workspace",
+    resolveStorePath: mock.fn(() => "/tmp/test-store.json"),
+    resolveAgentDir: mock.fn(() => "/tmp/test-agent"),
+    resolveAgentWorkspaceDir: mock.fn(() => "/tmp/test-workspace"),
     ensureAgentWorkspace: async () => {},
     loadSessionStore: () => ({ ...store }),
     saveSessionStore: async (path, data) => { Object.assign(store, data); },
-    resolveSessionFilePath: () => "/tmp/test-session.jsonl",
-    resolveAgentTimeoutMs: () => 30000,
+    resolveSessionFilePath: mock.fn(() => "/tmp/test-session.jsonl"),
+    resolveAgentTimeoutMs: mock.fn(() => 30000),
     runEmbeddedPiAgent: mock.fn(async () => ({
       payloads: [{ text: replyText, isError: false }],
       meta: { sessionId: crypto.randomUUID(), provider: "anthropic", model: "claude" },
@@ -26,10 +26,11 @@ function makeCoreDeps(replyText = "Plugin reply") {
   };
 }
 
-function makeApi(config = {}) {
+function makeApi(config = {}, pluginConfig = {}) {
   const sent = [];
   return {
     config: { session: { store: null }, ...config },
+    pluginConfig,
     runtime: {
       channel: {
         discord: {
@@ -109,6 +110,41 @@ describe("openclawReply — plugin path", () => {
     assert.strictEqual(mockRun.mock.calls.length, 0);
   });
 
+  it("uses plugin config for agent, session, provider, model, and SMS prompt limits", async () => {
+    const deps = makeCoreDeps("Configured reply");
+    const api = makeApi(
+      {
+        agents: {
+          defaults: {
+            model: { primary: "openai-codex/gpt-5.4" },
+          },
+        },
+      },
+      {
+        openclawAgentId: "my-agent",
+        openclawSessionId: "my-session",
+        smsMaxChars: 160,
+      },
+    );
+
+    await openclawReply({ userText: "What time is it?", mode: "sms", _api: api, _coreDeps: deps });
+
+    const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
+    assert.strictEqual(call.agentId, "my-agent");
+    assert.strictEqual(call.sessionKey, "my-session");
+    assert.strictEqual(call.provider, "openai-codex");
+    assert.strictEqual(call.model, "gpt-5.4");
+    assert.ok(call.prompt.includes("<= 160 characters"), `unexpected prompt: ${call.prompt}`);
+    assert.strictEqual(
+      /** @type {any[]} */ (deps.resolveStorePath.mock.calls)[0].arguments[1].agentId,
+      "my-agent",
+    );
+    assert.strictEqual(
+      /** @type {any[]} */ (deps.resolveAgentDir.mock.calls)[0].arguments[1],
+      "my-agent",
+    );
+  });
+
   it("uses the same session key for voice and sms (shared history)", async () => {
     const voiceDeps = makeCoreDeps("voice reply");
     const smsDeps = makeCoreDeps("sms reply");
@@ -178,6 +214,16 @@ describe("openclawReply — plugin path", () => {
 });
 
 describe("discordLog — plugin path", () => {
+  it("uses discordLogChannelId from plugin config", async () => {
+    const api = makeApi({}, { discordLogChannelId: "chan123" });
+
+    await discordLog({ text: "test log", _api: api });
+
+    assert.deepStrictEqual(api._sent, [
+      { to: "chan123", text: "test log", opts: { accountId: "default" } },
+    ]);
+  });
+
   it("calls sendMessageDiscord when _api is provided (not CLI spawn)", async () => {
     const api = makeApi();
     const mockRun = mock.fn(async () => ({ stdout: "", stderr: "" }));
