@@ -21,8 +21,9 @@ export default {
     api.registerService({
       id: "clawphone",
       name: "clawphone",
-      // OpenClaw service start/stop receive lifecycle context, while the
-      // validated plugin config is exposed on the registration API object.
+      // OpenClaw service start/stop receive a lifecycle context (OpenClawPluginServiceContext),
+      // while validated plugin config is exposed on the registration API object.
+      // clawphone doesn't need the context — config is captured via api.pluginConfig.
       start: async () => {
         server = await createServer(fromPluginConfig(api.pluginConfig ?? {}), api);
       },
