@@ -90,7 +90,7 @@ Sends `userText` to the OpenClaw agent and returns the reply string.
 - `mode: "sms"` — adds SMS constraints: ASCII-only, ≤ `SMS_MAX_CHARS` chars, no markdown
 - `callerName` — optional; included in the prompt prefix when set (e.g. `Phone call (Alice): …`)
 
-**Plugin path** (`_api` injected): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process. The dist path is resolved relative to `process.argv[1]` (the openclaw host entry point) because the plugin's own `node_modules` does not contain `openclaw`.
+**Plugin path** (`_api` injected): calls `runEmbeddedPiAgent` from `openclaw/dist/extensionAPI.js` in-process. The dist path is resolved relative to `process.argv[1]` (the openclaw host entry point) because the plugin's own `node_modules` does not contain `openclaw`. `agentId`, `sessionId`, `smsMaxChars`, and the agent model selection are sourced from `api.pluginConfig`; env-var defaults are used as fallbacks.
 
 **Standalone path** (`_api` is null): spawns `openclaw agent --json …` as a child process and parses stdout. Resilient to openclaw version differences via multi-field JSON fallback.
 
@@ -98,10 +98,10 @@ Both paths use a shared semaphore (`OPENCLAW_MAX_CONCURRENT`) to cap concurrent 
 
 ### `discordLog({ text })`
 
-Logs a message to a Discord channel (fire-and-forget). No-op when `DISCORD_LOG_CHANNEL_ID` is unset.
+Logs a message to a Discord channel (fire-and-forget).
 
-- **Plugin path**: calls `api.runtime.channel.discord.sendMessageDiscord()`
-- **Standalone path**: spawns `openclaw message send --channel discord …`
+- **Plugin path**: uses `pluginConfig.discordLogChannelId` (falling back to `DISCORD_LOG_CHANNEL_ID`); no-ops if neither is set. Calls `api.runtime.channel.discord.sendMessageDiscord()`.
+- **Standalone path**: uses `DISCORD_LOG_CHANNEL_ID`; no-ops if unset. Spawns `openclaw message send --channel discord …`.
 
 ---
 
