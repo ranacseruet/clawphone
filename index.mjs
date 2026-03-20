@@ -21,13 +21,13 @@ export default {
     api.registerService({
       id: "clawphone",
       name: "clawphone",
-      // OpenClaw service start/stop receive a lifecycle context (ctx), while
-      // validated plugin config is exposed on the registration API object.
-      // clawphone doesn't need ctx — config is captured via api.pluginConfig.
-      start: async (_ctx) => {
+      // OpenClaw service start/stop receive a lifecycle context (OpenClawPluginServiceContext),
+      // while validated plugin config is exposed on the registration API object.
+      // clawphone doesn't need the context — config is captured via api.pluginConfig.
+      start: async () => {
         server = await createServer(fromPluginConfig(api.pluginConfig ?? {}), api);
       },
-      stop: async (_ctx) => {
+      stop: async () => {
         if (!server) return;
         const activeServer = server;
         server = null;
