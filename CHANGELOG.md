@@ -7,13 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Plugin mode now uses a unified session key (`OPENCLAW_PHONE_SESSION_ID`) instead of
-  mode-prefixed keys (`voice:<id>` / `sms:<id>`). Voice and SMS now share a single
-  conversation history in plugin mode, matching standalone behaviour. **Upgrading
-  plugin-mode deployments will orphan history stored under the old prefixed keys** —
-  start a fresh session or rename the files in the agent's session store if you want
-  to preserve existing history.
+## [1.1.1] - 2026-03-22
+
+### Fixed
+- Plugin-mode service wiring corrected: `start` and `stop` are now top-level properties
+  on the registered service object (matching the OpenClaw plugin SDK contract), and plugin
+  config is read from `api.pluginConfig` rather than the `start` argument. Previously the
+  plugin would silently fail to start in newer OpenClaw versions.
+- `discordChannelId` in the plugin path now consistently reads from `pluginConfig` via the
+  local resolved variable; previously it fell back to the standalone env-var constant,
+  producing inconsistent Discord log routing in plugin mode.
+- `resolvedModel` is now spread into `runEmbeddedPiAgent` instead of passing explicit
+  `provider`/`model` keys, avoiding `undefined` keys being injected into the call when no
+  model override is configured.
+- Plugin mode now uses a unified session key (`OPENCLAW_PHONE_SESSION_ID`) for both voice
+  and SMS instead of mode-prefixed keys (`voice:<id>` / `sms:<id>`). Voice and SMS now
+  share a single conversation history, matching standalone behaviour. **Note for existing
+  plugin-mode deployments:** upgrading will orphan history stored under the old prefixed
+  keys — rename the session files in the agent's session store if you want to preserve
+  existing history.
+
+### Docs
+- `GET /health` endpoint response shape and field descriptions added to
+  `docs/architecture.md` (was live since v1.0.0 but never documented)
+- Plugin-mode latency advantage section added to the voice best-practices guide
+- ADR 001 (agent adapter abstraction) added to `docs/adr/`
 
 ## [1.1.0] - 2026-03-04
 
@@ -80,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenClaw plugin manifest (`openclaw.plugin.json`) with full `configSchema` and
   `uiHints` for all configuration fields
 
-[Unreleased]: https://github.com/ranacseruet/clawphone/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/ranacseruet/clawphone/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/ranacseruet/clawphone/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/ranacseruet/clawphone/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ranacseruet/clawphone/releases/tag/v1.0.0
