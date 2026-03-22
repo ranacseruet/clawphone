@@ -16,19 +16,25 @@ export default {
   name: "Twilio Phone Gateway",
 
   register(api) {
+    let server = null;
+
     api.registerService({
       id: "clawphone",
       name: "clawphone",
-      start: async (pluginConfig) => {
-        const server = await createServer(fromPluginConfig(pluginConfig), api);
-        return {
-          stop: async () => {
-            await new Promise((resolve, reject) =>
-              server.close((err) => (err ? reject(err) : resolve(undefined)))
-            );
-            await waitForVoiceDrain();
-          },
-        };
+      // OpenClaw service start/stop receive a lifecycle context (OpenClawPluginServiceContext),
+      // while validated plugin config is exposed on the registration API object.
+      // clawphone doesn't need the context — config is captured via api.pluginConfig.
+      start: async () => {
+        server = await createServer(fromPluginConfig(api.pluginConfig ?? {}), api);
+      },
+      stop: async () => {
+        if (!server) return;
+        const activeServer = server;
+        server = null;
+        await new Promise((resolve, reject) =>
+          activeServer.close((err) => (err ? reject(err) : resolve(undefined)))
+        );
+        await waitForVoiceDrain();
       },
     });
   },
