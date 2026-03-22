@@ -119,6 +119,26 @@ When both `PUBLIC_BASE_URL` and `TWILIO_AUTH_TOKEN` are set, every inbound POST 
 
 ---
 
+## Utility endpoints
+
+### `GET /health`
+
+Returns a JSON status object for uptime monitors and deployment health checks. No authentication required.
+
+```json
+{
+  "ok": true,
+  "version": "<package version>",
+  "uptime": <seconds since server start>,
+  "activeTurns": <count of in-flight voice turns>,
+  "twilioConfigured": true | false
+}
+```
+
+`twilioConfigured` is `true` when both `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set (standalone) or equivalent plugin config is present.
+
+---
+
 ## Module layout
 
 ```
