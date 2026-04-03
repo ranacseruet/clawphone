@@ -8,17 +8,21 @@ import { OPENCLAW_MAX_CONCURRENT, DISCORD_LOG_CHANNEL_ID } from "../lib/config.m
 
 // ─── Helpers for plugin-path tests ───────────────────────────────────────────
 
-function makeCoreDeps(replyText = "Plugin reply") {
-  const store = {};
+function makeCoreDeps(replyText = "Plugin reply", initialStore = {}) {
+  const store = structuredClone(initialStore);
   return {
     resolveStorePath: mock.fn(() => "/tmp/test-store.json"),
     resolveAgentDir: mock.fn(() => "/tmp/test-agent"),
     resolveAgentWorkspaceDir: mock.fn(() => "/tmp/test-workspace"),
     ensureAgentWorkspace: async () => {},
-    loadSessionStore: () => ({ ...store }),
-    saveSessionStore: async (path, data) => { Object.assign(store, data); },
+    loadSessionStore: () => structuredClone(store),
+    saveSessionStore: async (path, data) => {
+      for (const key of Object.keys(store)) delete store[key];
+      Object.assign(store, structuredClone(data));
+    },
     resolveSessionFilePath: mock.fn(() => "/tmp/test-session.jsonl"),
     resolveAgentTimeoutMs: mock.fn(() => 30000),
+    resolveThinkingDefault: mock.fn(() => "low"),
     runEmbeddedPiAgent: mock.fn(async () => ({
       payloads: [{ text: replyText, isError: false }],
       meta: { sessionId: crypto.randomUUID(), provider: "anthropic", model: "claude" },
@@ -131,7 +135,7 @@ describe("openclawReply — plugin path", () => {
 
     const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
     assert.strictEqual(call.agentId, "my-agent");
-    assert.strictEqual(call.sessionKey, "my-session");
+    assert.strictEqual(call.sessionKey, "sms:my-session");
     assert.strictEqual(call.provider, "openai-codex");
     assert.strictEqual(call.model, "gpt-5.4");
     assert.ok(call.prompt.includes("<= 160 characters"), `unexpected prompt: ${call.prompt}`);
@@ -145,7 +149,7 @@ describe("openclawReply — plugin path", () => {
     );
   });
 
-  it("uses the same session key for voice and sms (shared history)", async () => {
+  it("uses distinct mode-prefixed session keys for voice and sms", async () => {
     const voiceDeps = makeCoreDeps("voice reply");
     const smsDeps = makeCoreDeps("sms reply");
     const api = makeApi();
@@ -158,9 +162,47 @@ describe("openclawReply — plugin path", () => {
     const voiceKey   = voiceCalls[0].arguments[0].sessionKey;
     const smsKey     = smsCalls[0].arguments[0].sessionKey;
 
-    assert.strictEqual(voiceKey, smsKey, "voice and SMS must share the same session key");
-    assert.ok(!voiceKey.startsWith("voice:"), `session key must not have mode prefix, got ${voiceKey}`);
-    assert.ok(!smsKey.startsWith("sms:"),     `session key must not have mode prefix, got ${smsKey}`);
+    assert.strictEqual(voiceKey, "voice:phone");
+    assert.strictEqual(smsKey, "sms:phone");
+    assert.notStrictEqual(voiceKey, smsKey, "voice and SMS should not share the same session key");
+  });
+
+  it("reuses stored provider, model, thinking, verbose, and auth overrides", async () => {
+    const deps = makeCoreDeps("Override reply", {
+      "sms:my-session": {
+        sessionId: "session-123",
+        providerOverride: "azure-openai-responses",
+        modelOverride: "gpt-5.3-codex-spark",
+        thinkingLevel: "high",
+        verboseLevel: "on",
+        authProfileOverride: "azure-openai-responses:default",
+        authProfileOverrideSource: "user",
+      },
+    });
+    const api = makeApi(
+      {
+        agents: {
+          defaults: {
+            model: { primary: "openai-codex/gpt-5.4" },
+          },
+        },
+      },
+      {
+        openclawSessionId: "my-session",
+      },
+    );
+
+    await openclawReply({ userText: "hello", mode: "sms", _api: api, _coreDeps: deps });
+
+    const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
+    assert.strictEqual(call.sessionId, "session-123");
+    assert.strictEqual(call.sessionKey, "sms:my-session");
+    assert.strictEqual(call.provider, "azure-openai-responses");
+    assert.strictEqual(call.model, "gpt-5.3-codex-spark");
+    assert.strictEqual(call.thinkLevel, "high");
+    assert.strictEqual(call.verboseLevel, "on");
+    assert.strictEqual(call.authProfileId, "azure-openai-responses:default");
+    assert.strictEqual(call.authProfileIdSource, "user");
   });
 
   it("passes correct prompt framing for voice mode to runEmbeddedPiAgent", async () => {
