@@ -60,27 +60,43 @@ Until both issues are addressed (cancellable agent calls + session rollback on a
 
 ## SMS flow
 
-`lib/sms.mjs` attempts a **fast path** first:
+`lib/sms.mjs` handles two distinct message types: **slash commands** (plugin mode only) and **conversational messages**.
 
 ```
 Inbound SMS
   └─▶ POST /sms
-        ├─ Agent replies within SMS_FAST_TIMEOUT_MS (default 15 s)
-        │    └─ Return reply inline as TwiML MessagingResponse
-        └─ Agent takes longer
-             1. Return empty TwiML (ack immediately, no visible reply yet)
-             2. When agent finishes → send follow-up SMS via Twilio REST API
+        ├─ Message starts with "/" AND plugin mode active
+        │    └─ lib/openclaw-command-bridge.mjs: runSmsSlashCommand()
+        │         ├─ Not a recognised exact command → fall through to agent
+        │         └─ Recognised command → return reply inline as TwiML
+        │
+        └─ Conversational message (or standalone mode)
+             ├─ Agent replies within SMS_FAST_TIMEOUT_MS (default 15 s)
+             │    └─ Return reply inline as TwiML MessagingResponse
+             └─ Agent takes longer
+                  1. Return empty TwiML (ack immediately, no visible reply yet)
+                  2. When agent finishes → send follow-up SMS via Twilio REST API
 ```
+
+**Slash commands (plugin mode only):** When the inbound message is an exact OpenClaw control command (e.g. `/status`, `/reset`), `lib/openclaw-command-bridge.mjs` dispatches it directly through OpenClaw's native command system via `dispatchReplyFromConfig`. The reply is returned synchronously in the same TwiML response and is not subject to `SMS_MAX_CHARS` truncation. Messages starting with `/` that are not recognised exact commands fall through to the normal conversational path.
+
+The command bridge grants the already-validated SMS sender command authority inside OpenClaw's auth system via a config override (`ownerAllowFrom: ["*"]`, `allowFrom: null`) — necessary because phone numbers are not in the Discord/TUI owner allowlist.
 
 The fast path avoids an extra round-trip message for fast replies. The slow path prevents Twilio from timing out the webhook while the agent thinks.
 
-**SMS text sanitization:** Before any SMS reply is sent, `lib/sms.mjs` normalises Unicode punctuation (curly quotes → straight, em-dash → hyphen, ellipsis → `...`, etc.) and truncates at `SMS_MAX_CHARS`. This prevents UCS-2 encoding overhead on Twilio, which would halve the per-segment character limit.
+**SMS text sanitization:** Before any conversational SMS reply is sent, `lib/sms.mjs` normalises Unicode punctuation (curly quotes → straight, em-dash → hyphen, ellipsis → `...`, etc.) and truncates at `SMS_MAX_CHARS`. This prevents UCS-2 encoding overhead on Twilio, which would halve the per-segment character limit. Slash command replies bypass sanitization and are sent at full length.
 
 ---
 
 ## Agent integration
 
-`lib/agent.mjs` exports two functions used by both the voice and SMS handlers:
+`lib/agent.mjs` exports three functions used by the voice and SMS handlers:
+
+### `openclawCommandReply({ userText, from, to, _api })` *(plugin mode only)*
+
+Attempts to handle `userText` as an OpenClaw slash command (e.g. `/status`). Returns `{ handled: true, reply }` when the message is a recognised exact command, or `{ handled: false }` when it is not. Only available in plugin mode (`_api` must be present); standalone mode always returns `{ handled: false }`.
+
+Delegates to `lib/openclaw-command-bridge.mjs:runSmsSlashCommand()`.
 
 ### `openclawReply({ userText, mode, callerName })`
 
@@ -147,8 +163,9 @@ index.mjs               OpenClaw plugin entry point
 lib/
   config.mjs            All env vars, constants, fromPluginConfig()
   http-server.mjs       HTTP server factory (shared by both entry points)
-  agent.mjs             Agent integration (openclawReply, discordLog)
-  sms.mjs               SMS handler (fast/slow path, text normalisation)
+  agent.mjs             Agent integration (openclawReply, openclawCommandReply, discordLog)
+  openclaw-command-bridge.mjs  SMS slash command dispatch (plugin mode only)
+  sms.mjs               SMS handler (slash commands, fast/slow path, text normalisation)
   twiml.mjs             TwiML XML builders (voice responses)
   twilio.mjs            Twilio SDK wrapper (sendSms, validateWebhookSignature)
   utils.mjs             parseForm, toSayableText, readBody, semaphore, run
