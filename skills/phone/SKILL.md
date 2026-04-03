@@ -21,9 +21,20 @@ The agent should reply conversationally, keeping answers concise enough to be
 spoken aloud (≤ 600 characters before truncation). Markdown and formatting are
 stripped before the reply is sent to Twilio's TTS engine.
 
+## SMS slash commands (plugin mode only)
+
+When running as an OpenClaw plugin, SMS messages that are exact control
+commands (e.g. `/status`, `/reset`) are handled directly by OpenClaw's native
+command system — the agent is not involved. The command reply is sent back as
+an SMS response immediately. This gives the same output as running the command
+from Discord or the TUI.
+
+Messages starting with `/` that are not recognised exact commands fall through
+to the normal conversational path below.
+
 ## SMS framing
 
-Incoming SMS messages are sent to the agent as:
+Incoming conversational SMS messages are sent to the agent as:
 
 ```
 SMS: <message text>

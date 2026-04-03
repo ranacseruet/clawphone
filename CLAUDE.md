@@ -51,6 +51,7 @@ Full details in [`docs/architecture.md`](docs/architecture.md). Key points for e
 
 - **Two entry points, one server**: `server.mjs` (standalone) and `index.mjs` (plugin) both call `createServer()` in `lib/http-server.mjs`. Changes to HTTP routing go in `http-server.mjs`.
 - **Voice uses a polling loop**: `/voice` → `/speech` → `/speech-wait` (polls until agent reply is ready). State lives in `lib/voice-state.mjs` — two Maps keyed by UUID and CallSid.
+- **SMS slash commands (plugin mode only)**: `/`-prefixed messages that match an exact OpenClaw command are dispatched via `lib/openclaw-command-bridge.mjs` and bypass the agent entirely. Non-matching `/` messages fall through to the agent.
 - **SMS has a fast/slow path**: fast path returns inline TwiML if agent replies within `SMS_FAST_TIMEOUT_MS`; slow path acks immediately and sends a follow-up SMS via Twilio REST API.
 - **Agent dual-path**: plugin mode calls `runEmbeddedPiAgent` in-process; standalone spawns `openclaw agent` CLI. Both go through `openclawReply()` in `lib/agent.mjs`.
 
