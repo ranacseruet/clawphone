@@ -169,6 +169,7 @@ lib/
   twiml.mjs             TwiML XML builders (voice responses)
   twilio.mjs            Twilio SDK wrapper (sendSms, validateWebhookSignature)
   utils.mjs             parseForm, toSayableText, readBody, semaphore, run
+  plugin-session-key.mjs  Canonical session-key builder and legacy-key migration (plugin mode)
   voice-state.mjs       In-memory pending-turn state for voice polling loop
 ecosystem.config.cjs    PM2 process config (secrets loaded from .env)
 openclaw.plugin.json    OpenClaw plugin manifest and config schema

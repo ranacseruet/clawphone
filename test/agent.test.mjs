@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 
 import { discordLog, openclawReply } from "../lib/agent.mjs";
 import { OPENCLAW_MAX_CONCURRENT, DISCORD_LOG_CHANNEL_ID } from "../lib/config.mjs";
+import { canonicalPluginSessionKey, resolvePluginSessionEntry } from "../lib/plugin-session-key.mjs";
 
 // ─── Helpers for plugin-path tests ───────────────────────────────────────────
 
@@ -135,7 +136,7 @@ describe("openclawReply — plugin path", () => {
 
     const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
     assert.strictEqual(call.agentId, "my-agent");
-    assert.strictEqual(call.sessionKey, "sms:my-session");
+    assert.strictEqual(call.sessionKey, "agent:my-agent:sms:my-session");
     assert.strictEqual(call.provider, "openai-codex");
     assert.strictEqual(call.model, "gpt-5.4");
     assert.ok(call.prompt.includes("<= 160 characters"), `unexpected prompt: ${call.prompt}`);
@@ -162,8 +163,8 @@ describe("openclawReply — plugin path", () => {
     const voiceKey   = voiceCalls[0].arguments[0].sessionKey;
     const smsKey     = smsCalls[0].arguments[0].sessionKey;
 
-    assert.strictEqual(voiceKey, "voice:phone");
-    assert.strictEqual(smsKey, "sms:phone");
+    assert.strictEqual(voiceKey, "agent:phone:voice:phone");
+    assert.strictEqual(smsKey, "agent:phone:sms:phone");
     assert.notStrictEqual(voiceKey, smsKey, "voice and SMS should not share the same session key");
   });
 
@@ -196,7 +197,7 @@ describe("openclawReply — plugin path", () => {
 
     const call = /** @type {any[]} */ (deps.runEmbeddedPiAgent.mock.calls)[0].arguments[0];
     assert.strictEqual(call.sessionId, "session-123");
-    assert.strictEqual(call.sessionKey, "sms:my-session");
+    assert.strictEqual(call.sessionKey, "agent:phone:sms:my-session");
     assert.strictEqual(call.provider, "azure-openai-responses");
     assert.strictEqual(call.model, "gpt-5.3-codex-spark");
     assert.strictEqual(call.thinkLevel, "high");
@@ -252,6 +253,57 @@ describe("openclawReply — plugin path", () => {
     const result = await openclawReply({ userText: "test", run: mockRun });
     assert.strictEqual(result, "CLI reply");
     assert.strictEqual(mockRun.mock.calls.length, 1);
+  });
+});
+
+describe("plugin session keys", () => {
+  it("canonicalizes mode-prefixed session keys for the selected agent", () => {
+    assert.strictEqual(canonicalPluginSessionKey("main", "voice:phone"), "agent:main:voice:phone");
+    assert.strictEqual(canonicalPluginSessionKey("Research", "sms:phone"), "agent:research:sms:phone");
+  });
+
+  it("returns canonical key and creates new entry when store is empty", () => {
+    const store = /** @type {import("../lib/plugin-session-key.mjs").SessionStore} */ ({});
+    const { key, entry } = resolvePluginSessionEntry({
+      store,
+      agentId: "main",
+      sessionKey: "voice:phone",
+    });
+    assert.strictEqual(key, "agent:main:voice:phone");
+    assert.ok(typeof entry.sessionId === "string" && entry.sessionId.length > 0);
+    assert.ok(typeof entry.updatedAt === "number");
+    assert.strictEqual(store["voice:phone"], undefined);
+    assert.ok(store["agent:main:voice:phone"] !== undefined);
+  });
+
+  it("migrates legacy bare session keys into the canonical agent key", () => {
+    const store = {
+      "voice:phone": {
+        sessionId: "legacy-session",
+        updatedAt: 200,
+        thinkingLevel: "high",
+        systemPromptReport: {
+          sessionKey: "voice:phone",
+        },
+      },
+      "agent:main:voice:phone": {
+        sessionId: "canonical-session",
+        updatedAt: 100,
+        thinkingLevel: "low",
+      },
+    };
+
+    const { key, entry } = resolvePluginSessionEntry({
+      store,
+      agentId: "main",
+      sessionKey: "voice:phone",
+    });
+
+    assert.strictEqual(key, "agent:main:voice:phone");
+    assert.strictEqual(entry.sessionId, "legacy-session");
+    assert.strictEqual(entry.thinkingLevel, "high");
+    assert.strictEqual(store["voice:phone"], undefined);
+    assert.strictEqual(store["agent:main:voice:phone"].systemPromptReport.sessionKey, "agent:main:voice:phone");
   });
 });
 
