@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-05
+
+### Added
+- SMS slash commands in plugin mode: inbound SMS messages beginning with `/` that match
+  an exact OpenClaw control command (e.g. `/status`, `/reset`) are now dispatched directly
+  through OpenClaw's native command system via `lib/openclaw-command-bridge.mjs`. The reply
+  is returned inline in the TwiML response and is not subject to `SMS_MAX_CHARS` truncation.
+  Messages starting with `/` that are not recognised exact commands fall through to the
+  normal conversational agent path.
+- `lib/plugin-session-key.mjs`: new module encapsulating canonical session-key construction
+  and legacy-key migration logic, with full JSDoc/`@typedef` coverage.
+
+### Fixed
+- SMS slash command authorization: the command bridge now grants the validated SMS sender
+  command authority inside OpenClaw's auth system via a config override
+  (`ownerAllowFrom: ["*"]`, `allowFrom: null`), since phone numbers are not in the
+  Discord/TUI owner allowlist.
+- Plugin-mode session keys are now canonicalized to `agent:<id>:<mode>:<session>` (e.g.
+  `agent:main:sms:phone`, `agent:main:voice:phone`), matching the format OpenClaw's own
+  gateway uses. Voice and SMS maintain separate conversation histories (mode-split).
+  A migration step folds any legacy bare keys (e.g. `sms:phone`) into the canonical form
+  on first use. This supersedes the v1.1.1 note about shared session keys — mode-split is
+  now the correct and intended behavior.
+
 ## [1.1.1] - 2026-03-22
 
 ### Fixed
@@ -98,7 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenClaw plugin manifest (`openclaw.plugin.json`) with full `configSchema` and
   `uiHints` for all configuration fields
 
-[Unreleased]: https://github.com/ranacseruet/clawphone/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/ranacseruet/clawphone/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/ranacseruet/clawphone/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/ranacseruet/clawphone/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/ranacseruet/clawphone/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ranacseruet/clawphone/releases/tag/v1.0.0
