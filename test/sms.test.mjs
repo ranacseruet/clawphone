@@ -124,11 +124,7 @@ test("handleIncomingSms: slow path acks and sends async follow-up", async () => 
 
   const openclawReply = async () => {
     calls.openclaw++;
-    // first call will be timed out; second call (async) returns.
-    if (calls.openclaw === 1) {
-      await new Promise((r) => setTimeout(r, 200));
-      return "too late";
-    }
+    await new Promise((r) => setTimeout(r, 50));
     return "async reply";
   };
 
@@ -153,7 +149,7 @@ test("handleIncomingSms: slow path acks and sends async follow-up", async () => 
 
   await res.startAsync();
 
-  assert.equal(calls.openclaw, 2);
+  assert.equal(calls.openclaw, 1);
   assert.equal(calls.send, 1);
 });
 
@@ -327,4 +323,28 @@ test("handleIncomingSms: From is undefined → normalized to '+' → fails allow
   });
   assert.equal(res.didAck, false);
   assert.match(res.twiml, /Unauthorized/);
+});
+
+
+test("handleIncomingSms: async follow-up uses the reply completed after acknowledgment", async () => {
+  let calls = 0;
+  /** @type {(reply: string) => void} */
+  let resolveReply = () => {};
+  const promise = new Promise((resolve) => { resolveReply = resolve; });
+  let sentBody;
+  const result = await handleIncomingSms({
+    form: { From: "+15550000001", To: "+15550000002", Body: "hi" },
+    deps: {
+      openclawReply: () => { calls++; return promise; },
+      twilioSendSms: async ({ body }) => { sentBody = body; },
+    },
+    fastTimeoutMs: 1,
+    log: () => {},
+  });
+  assert.equal(result.didAck, true);
+  assert.ok(result.startAsync);
+  resolveReply("original reply");
+  await result.startAsync();
+  assert.equal(calls, 1);
+  assert.equal(sentBody, "original reply");
 });
